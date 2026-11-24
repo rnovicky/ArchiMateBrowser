@@ -992,6 +992,12 @@ in ArchiMate notation, with the acronym as fallback.
 * **Source:** `inputs/archi_sprites.svg`, PlantUML's `listsprites` output for
   the ArchiMate stdlib (credit: archimatetool.com). It contains 139 sprites:
   116 vector paths and 23 embedded 15×15 PNGs.
+* **Licence:** the icons are not covered by this project's MIT licence.
+  PlantUML (GPL-3.0-or-later by default, also LGPL, Apache 2.0, EPL 2.0 and
+  MIT at the user's option) holds them as built-in sprites and credits them
+  to Archi (MIT); neither names the icon files separately, and the files
+  carry no licence of their own. [img/sprites/NOTICE.md](img/sprites/NOTICE.md)
+  has the details and the links.
 * **Extraction:** `python tools/extract_sprites.py` (stdlib only, re-runnable)
   writes one file per sprite to `img/sprites/<name>.svg|.png`, plus:
   * `img/sprites/sprites.json`: manifest with file names and inline data
@@ -2096,3 +2102,5 @@ go into `TEST_FILES` in `tests/runner.js`), and extend the fixture if needed
 ## License
 
 MIT, see [LICENSE](LICENSE). Third-party code keeps its own licence (ELK in `vendor/elk/` is EPL-2.0, see its `LICENSE.md`).
+The ArchiMate icons in `img/sprites/` come from PlantUML's built-in sprites, credited to Archi, and are not covered
+by this project's licence: see [img/sprites/NOTICE.md](img/sprites/NOTICE.md).
