@@ -1,0 +1,97 @@
+{
+  "_comment": "Fixture model for the browser tests (EN-1). Compact form: tests/fixture_xml.py turns it into an ArchiMate exchange file (identifiers id-e<id>, id-r<id>, id-v<id> ...), which tests/test_server.py imports into a real API. 'filler' adds generated DataObjects (ids 1001+) so one type has more rows than a tree page.",
+  "model": { "id": 1, "name": "Fixture Model", "version": "1.0", "xmiIdentifier": "id-fixture-model", "documentation": "Small model for the ArchiMate Browser tests." },
+  "propertyDefinitions": [
+    { "id": 1, "name": "owner", "dataType": "string" },
+    { "id": 2, "name": "lifecycle", "dataType": "string" },
+    { "id": 3, "name": "cost", "dataType": "number" }
+  ],
+  "elements": [
+    { "id": 1, "type": "BusinessActor", "name": "Customer", "props": { "owner": "Sales" }, "documentation": "Buys things." },
+    { "id": 2, "type": "BusinessRole", "name": "Customer Role" },
+    { "id": 3, "type": "BusinessProcess", "name": "Order Handling", "props": { "lifecycle": "current" } },
+    { "id": 4, "type": "BusinessObject", "name": "Invoice" },
+    { "id": 5, "type": "BusinessService", "name": "Order Service" },
+    { "id": 6, "type": "ApplicationComponent", "name": "ERP", "props": { "lifecycle": "current", "owner": "IT", "cost": "120" } },
+    { "id": 7, "type": "ApplicationComponent", "name": "Billing Module", "props": { "lifecycle": "planned", "cost": "40" } },
+    { "id": 8, "type": "ApplicationService", "name": "Billing Service" },
+    { "id": 9, "type": "DataObject", "name": "Invoice Data" },
+    { "id": 10, "type": "AndJunction", "name": "" },
+    { "id": 11, "type": "Node", "name": "Server" },
+    { "id": 12, "type": "ApplicationComponent", "name": "Payment Gateway", "props": { "lifecycle": "to-be-deprecated" } },
+    { "id": 13, "type": "Capability", "name": "Finance" },
+    { "id": 14, "type": "Goal", "name": "Orphan Goal" }
+  ],
+  "filler": 230,
+  "relationships": [
+    { "id": 101, "type": "Assignment", "s": 1, "t": 2 },
+    { "id": 102, "type": "Assignment", "s": 2, "t": 3 },
+    { "id": 103, "type": "Realization", "s": 3, "t": 5 },
+    { "id": 104, "type": "Serving", "s": 5, "t": 1 },
+    { "id": 105, "type": "Access", "s": 3, "t": 4, "accessType": "Write" },
+    { "id": 106, "type": "Composition", "s": 6, "t": 7 },
+    { "id": 107, "type": "Realization", "s": 7, "t": 8 },
+    { "id": 108, "type": "Serving", "s": 8, "t": 3, "name": "bills" },
+    { "id": 109, "type": "Access", "s": 7, "t": 9, "accessType": "Read" },
+    { "id": 110, "type": "Flow", "s": 6, "t": 10 },
+    { "id": 111, "type": "Flow", "s": 10, "t": 7 },
+    { "id": 112, "type": "Flow", "s": 10, "t": 12 },
+    { "id": 113, "type": "Serving", "s": 11, "t": 6 },
+    { "id": 114, "type": "Association", "s": 13, "t": 6 },
+    { "id": 115, "type": "Association", "s": 1, "tr": 108, "name": "complains about" },
+    { "id": 116, "type": "Triggering", "s": 12, "t": 7 }
+  ],
+  "views": [
+    {
+      "id": 1, "name": "Overview", "viewpoint": "Layered",
+      "nodes": [
+        { "id": 1, "type": "Container", "label": "Business", "x": 20, "y": 20, "w": 400, "h": 210, "children": [
+          { "id": 2, "type": "Element", "el": 1, "x": 40, "y": 60, "w": 120, "h": 55 },
+          { "id": 3, "type": "Element", "el": 2, "x": 200, "y": 60, "w": 120, "h": 55 },
+          { "id": 4, "type": "Element", "el": 3, "x": 40, "y": 150, "w": 120, "h": 55 }
+        ] },
+        { "id": 5, "type": "Element", "el": 6, "x": 460, "y": 20, "w": 300, "h": 210, "children": [
+          { "id": 6, "type": "Element", "el": 7, "x": 480, "y": 80, "w": 120, "h": 55 }
+        ] },
+        { "id": 7, "type": "Label", "label": "Application Detail", "viewRef": 2, "x": 460, "y": 260, "w": 160, "h": 50 },
+        { "id": 8, "type": "Label", "label": "A note about the overview", "documentation": "Note documentation", "x": 20, "y": 260, "w": 200, "h": 40 }
+      ],
+      "connections": [
+        { "id": 1, "rel": 101, "s": 2, "t": 3 },
+        { "id": 2, "rel": 102, "s": 3, "t": 4 },
+        { "id": 3, "rel": 106, "s": 5, "t": 6 },
+        { "id": 16, "s": 8, "t": 3 }
+      ]
+    },
+    {
+      "id": 2, "name": "Application Detail",
+      "nodes": [
+        { "id": 10, "type": "Element", "el": 6, "x": 20, "y": 20, "w": 120, "h": 55 },
+        { "id": 11, "type": "Element", "el": 7, "x": 220, "y": 20, "w": 120, "h": 55 },
+        { "id": 12, "type": "Element", "el": 8, "x": 420, "y": 20, "w": 120, "h": 55 },
+        { "id": 13, "type": "Element", "el": 9, "x": 220, "y": 140, "w": 120, "h": 55 },
+        { "id": 14, "type": "Element", "el": 10, "x": 100, "y": 150, "w": 15, "h": 15 },
+        { "id": 15, "type": "Element", "el": 12, "x": 20, "y": 240, "w": 120, "h": 55 }
+      ],
+      "connections": [
+        { "id": 10, "rel": 106, "s": 10, "t": 11 },
+        { "id": 11, "rel": 107, "s": 11, "t": 12, "bendpoints": [{ "x": 380, "y": 10 }] },
+        { "id": 12, "rel": 109, "s": 11, "t": 13 },
+        { "id": 13, "rel": 110, "s": 10, "t": 14 },
+        { "id": 14, "rel": 111, "s": 14, "t": 11 },
+        { "id": 15, "rel": 112, "s": 14, "t": 15 }
+      ]
+    },
+    { "id": 3, "name": "Empty View", "nodes": [], "connections": [] }
+  ],
+  "organizations": [
+    { "id": 1, "label": "Business", "children": [
+      { "id": 11, "el": 1 }, { "id": 12, "el": 2 }, { "id": 13, "el": 3 }, { "id": 14, "el": 4 }, { "id": 15, "el": 5 }
+    ] },
+    { "id": 2, "label": "Application", "children": [
+      { "id": 3, "label": "Billing", "children": [ { "id": 31, "el": 7 }, { "id": 32, "el": 8 }, { "id": 33, "el": 9 } ] },
+      { "id": 21, "el": 6 }, { "id": 22, "el": 10 }, { "id": 23, "el": 12 }
+    ] },
+    { "id": 4, "label": "Relations", "children": [ { "id": 41, "rel": 101 }, { "id": 42, "rel": 102 }, { "id": 43, "rel": 103 } ] }
+  ]
+}

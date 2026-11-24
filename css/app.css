@@ -1,0 +1,695 @@
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #1d2330;
+  --muted: #69717f;
+  --line: #d9dde3;
+  --accent: #2f6fde;
+  --accent-soft: #e5eefc;
+  --error: #c0392b;
+  --error-soft: #fdecea;
+  --diagram-bg: #ffffff;
+  --diagram-line: #333333;
+  --diagram-ink: #1d2330;
+  font: 13px/1.4 "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15181d;
+    --panel: #1d2128;
+    --ink: #e3e6eb;
+    --muted: #9aa2ae;
+    --line: #333a44;
+    --accent: #6f9ff0;
+    --accent-soft: #263248;
+    --error: #ff7b6b;
+    --error-soft: #3a2222;
+    /* diagrams keep a light canvas so ArchiMate layer colours stay readable */
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+
+button, select, input, textarea { font: inherit; color: inherit; }
+button {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+  padding: 3px 9px; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.link { border: none; background: none; color: var(--accent); padding: 0 4px; }
+select, input, textarea { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.spacer { flex: 1; }
+.muted { color: var(--muted); }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.field select { color: var(--ink); }
+
+/* ------------------------------------------------------------ top bar */
+.topbar {
+  display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap;
+}
+.topbar h1 { font-size: 15px; margin: 0; letter-spacing: .2px; }
+.topbar select { max-width: 260px; }
+.topbar-group { display: inline-flex; align-items: center; gap: 4px; }
+.topbar .search { flex: 1; min-width: 200px; max-width: 520px; }
+.search input { width: 100%; }
+.topbar .who { margin-left: auto; }
+#btn-who.signed-out { font-weight: 600; }
+.dropdown .menu-note { margin: 4px 10px 6px; max-width: 280px; color: var(--muted); font-size: 12px; }
+
+/* dropdown menus of the top bar and the diagram toolbar (same look as the context menus) */
+.menu-button { position: relative; display: inline-flex; }
+.menu-button > .dropdown { position: absolute; top: calc(100% + 4px); left: 0; min-width: 200px; }
+.menu-button > .dropdown.dropdown-end { left: auto; right: 0; }
+.dropdown[hidden] { display: none; }
+.dropdown button.danger-item { color: var(--error); }
+.dropdown button.danger-item:hover:not(:disabled), .dropdown button.danger-item:focus-visible { background: var(--error); color: #fff; }
+.dropdown hr[hidden] { display: none; }
+.icon-button { padding-left: 8px; padding-right: 8px; font-weight: 700; line-height: 1; min-width: 28px; }
+button.has-caret::after { content: " ▾"; font-size: 10px; opacity: .7; }
+.status { color: var(--muted); font-size: 12px; }
+.status.error { color: var(--error); }
+
+/* EN-2: API unreachable */
+.api-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 14px;
+  background: var(--error-soft); color: var(--ink); border-bottom: 1px solid var(--error);
+}
+.api-banner[hidden] { display: none; }
+.api-banner strong { color: var(--error); }
+.api-banner .msg { overflow-wrap: anywhere; }
+.api-banner .next { color: var(--muted); font-size: 12px; }
+.api-banner button { margin-left: auto; }
+/* MU-13 (2.14.0): the model was changed elsewhere */
+.change-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 14px;
+  background: var(--panel); border-bottom: 2px solid var(--accent, #3b82f6);
+}
+.change-bar[hidden] { display: none; }
+/* 2.20.0: an offline copy (js/offline/): what needs the API is not shown; a banner says what the page is */
+.offline .online-only { display: none !important; }
+.offline-banner { padding: 5px 12px; font-size: 12px; background: var(--panel); color: var(--muted); border-bottom: 1px solid var(--line); }
+.offline-banner[hidden] { display: none; }
+.offline-banner::before { content: "⇩ "; color: var(--accent); }
+.offline-failed { padding: 12px 16px; background: #fff3bf; color: #5c3c00; border-bottom: 1px solid #e0c46c; font-weight: 600; }
+/* EN-4: the focus seen from the keyboard: diagram elements, the drawing, the details' heading */
+.v-node[data-element]:focus { outline: none; }
+.v-node[data-element]:focus-visible > .v-shape, .v-node[data-element]:focus > .v-shape { stroke: var(--accent); stroke-width: 3; }
+svg:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.details h2:focus { outline: none; }
+.details h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tree:focus-visible .tree-row.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+.change-bar .msg { overflow-wrap: anywhere; margin-right: auto; }
+/* MU-17 (2.14.0): the record of changes in the details */
+.history .history-entry { display: block; }
+.history .history-fields { color: var(--muted); font-size: 12px; margin-left: 12px; overflow-wrap: anywhere; }
+
+/* EN-2: error state of a pane or section, with Retry */
+.pane-error { color: var(--error); padding: 20px; text-align: center; }
+.pane-error p { margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pane-error .actions { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.pane-error .actions button { color: var(--ink); }
+.pane-error .actions button.primary { color: #fff; }
+.pane-error.compact { padding: 4px 0; text-align: left; }
+.pane-error.compact p { margin-bottom: 4px; }
+.pane-error.compact .actions { justify-content: flex-start; }
+.tree-error button.link { padding: 0 2px; }
+
+/* ------------------------------------------------------------ layout */
+.layout {
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(240px, 22%) 1fr minmax(280px, 25%);
+}
+.layout.resizable { position: relative; }
+/* 2.28.0: closed side panes; each pane keeps its column, so the others do not move into it */
+@media (min-width: 901px) {
+  .layout > .tree-pane { grid-column: 1; }
+  .layout > .diagram-pane { grid-column: 2; }
+  .layout > .details-pane { grid-column: 3; }
+  .layout.tree-closed > .tree-pane, .layout.details-closed > .details-pane { display: none; }
+}
+.pane-toggles { display: flex; gap: 2px; }
+.on-diagram, .add-to-diagram { margin-left: 6px; padding: 0 5px; border-radius: 8px; font: inherit; font-size: 11px; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+.on-diagram { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+.add-to-diagram { background: none; color: var(--accent); border: 1px dashed var(--accent); }
+.on-diagram:hover, .add-to-diagram:hover { filter: brightness(1.1); text-decoration: underline; }
+.on-diagram[hidden], .add-to-diagram[hidden] { display: none; }
+/* 2.30.0: the element "on diagram" points to flashes when it is brought into view */
+@keyframes v-flash { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: .25; } }
+.v-node.v-flash > .v-shape, .v-node.v-flash > circle { animation: v-flash 1.5s ease-in-out; stroke: var(--accent); stroke-width: 4; }
+@media (prefers-reduced-motion: reduce) { .v-node.v-flash > .v-shape, .v-node.v-flash > circle { animation: none; } }
+.pane-toggles button { padding: 2px 7px; }
+.pane-toggles button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (max-width: 900px) { .pane-toggles [data-pane-toggle] { display: none; } }
+.layout.resizing { cursor: col-resize; user-select: none; }
+.layout.resizing iframe, .layout.resizing svg { pointer-events: none; }
+/* EN-7: borders between the panes can be dragged (js/panes.js) */
+.pane-splitter {
+  position: absolute; top: 0; bottom: 0; width: 7px; z-index: 5; cursor: col-resize; background: transparent;
+}
+.pane-splitter:hover, .pane-splitter:focus-visible, .layout.resizing .pane-splitter { background: var(--accent); opacity: .35; outline: none; }
+.pane { min-height: 0; overflow: auto; background: var(--panel); }
+.tree-pane { border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+/* the left pane's sections: basket, search results, model tree; each collapsible, each scrolling */
+.side-section { display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid var(--line); }
+.side-section[hidden] { display: none; }
+.side-head { display: flex; align-items: center; gap: 4px; padding: 4px 8px 4px 2px; background: var(--bg); font-size: 12px; flex: none; }
+.side-head strong { flex: 1; min-width: 0; }
+.side-toggle { border: none; background: none; padding: 0 6px; color: var(--muted); line-height: 1; }
+.side-toggle::before { content: "▾"; display: inline-block; transition: transform .15s; }
+.side-section.collapsed .side-toggle::before { transform: rotate(-90deg); }
+.side-body { overflow: auto; min-height: 0; flex: 1 1 auto; }
+.side-section.collapsed .side-body { display: none; }
+.side-section.basket { flex: 0 1 auto; max-height: 30%; }
+.side-section.search-results { flex: 0 1 auto; max-height: 40%; }
+.side-section.tree-section { flex: 1 1 0; min-height: 120px; border-bottom: none; }
+.side-section.tree-section.collapsed { flex: 0 0 auto; }
+/* with the tree folded away, the basket and the results may use the whole height */
+.tree-pane:has(.tree-section.collapsed) .side-section:not(.tree-section) { max-height: none; }
+#tree { padding: 4px 0; }
+.details-pane { border-left: 1px solid var(--line); }
+.diagram-pane { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); container: diagram / inline-size; }
+
+
+/* UX-4: an option that does not change the diagram shown (it still sets what the next one uses) */
+.field.inactive { opacity: .55; }
+.field.inactive select { border-style: dashed; }
+.pane-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px; }
+.placeholder { color: var(--muted); padding: 24px; text-align: center; }
+
+/* UX-1: narrow windows show one pane at a time; the switcher above them picks it */
+.pane-switch { display: none; }
+@media (max-width: 900px) {
+  .pane-switch {
+    display: flex; gap: 0; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .pane-switch button { flex: 1; border-radius: 0; margin-left: -1px; }
+  .pane-switch button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .pane-switch button:last-child { border-radius: 0 6px 6px 0; }
+  .pane-switch button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; position: relative; }
+  .layout { grid-template-columns: 1fr !important; grid-template-rows: 1fr; }
+  .tree-pane, .details-pane { border: none; }
+  body:not([data-pane="tree"]) .tree-pane,
+  body:not([data-pane="diagram"]) .diagram-pane,
+  body:not([data-pane="details"]) .details-pane { display: none; }
+  .search input { width: 100%; }
+  .topbar h1 { font-size: 14px; }
+}
+
+/* ------------------------------------------------------------ tree */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul { padding-left: 14px; }
+.tree:focus { outline: none; }
+.tree-row {
+  display: flex; align-items: center; gap: 5px; padding: 2px 8px; cursor: pointer;
+  white-space: nowrap; border-radius: 3px; margin: 0 4px;
+}
+.tree-row:hover { background: var(--accent-soft); }
+.tree-row.selected { background: var(--accent); color: #fff; }
+.tree-row.selected .tree-sub { color: #e8eefc; }
+/* a row's action (× of a basket row): shown on hover and on the selected row */
+.tree-action {
+  display: none; margin-left: auto; border: none; background: none; padding: 0 4px; line-height: 1;
+  color: var(--muted); font-size: 14px;
+}
+.tree-row:hover .tree-action, .tree-row.selected .tree-action { display: inline-block; }
+.tree-action:hover { color: var(--error); }
+.tree-row.selected .tree-action { color: #fff; }
+.tree-toggle { width: 12px; flex: none; color: var(--muted); text-align: center; }
+.tree-row.selected .tree-toggle { color: #fff; }
+.tree-icon { width: 16px; text-align: center; flex: none; }
+.tree-label { overflow: hidden; text-overflow: ellipsis; }
+.tree-label.muted { font-style: italic; }
+.tree-sub { color: var(--muted); font-size: 11px; flex: none; }
+.tree-empty, .tree-more { color: var(--muted); padding: 2px 8px 2px 30px; font-style: italic; }
+.tree-more button { font-size: 11px; }
+.tree-error { color: var(--error); padding: 2px 8px 2px 30px; }
+
+.badge {
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 30px; padding: 0 4px;
+  border: 1px solid #0003; border-radius: 3px; vertical-align: middle;
+  font-size: 10px; line-height: 15px; text-align: center; color: #222; background: #eee; flex: none;
+}
+/* ArchiMate sprites (img/sprites): black line art, always shown on a light background */
+img.sprite { width: 12px; height: 12px; flex: none; display: inline-block; vertical-align: -2px; }
+.badge img.sprite { margin-left: -1px; }
+.sprite-chip {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
+  background: #f1f3f5; border: 1px solid #0002; border-radius: 3px; flex: none;
+}
+.badge.rel { background: #f1f3f5; min-width: 0; padding: 0 2px; }
+.details ul.rels .glyph .badge.rel { margin-right: 2px; }
+.chip img.sprite { margin: 0 1px; }
+
+
+/* ------------------------------------------------------------ diagram */
+.diagram-head { background: var(--panel); border-bottom: 1px solid var(--line); }
+.diagram-head strong { flex: 1; min-width: 0; }
+/* the diagram's view (⋮ menu): the one shown is ticked */
+.dropdown [role=menuitemradio] { padding-left: 24px; position: relative; }
+.dropdown [role=menuitemradio][aria-checked=true]::before { content: "✓"; position: absolute; left: 9px; }
+.toolbar {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; flex-wrap: wrap;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+/* Options / Filters / Layout: tabs over their panels */
+.panel-tabs { gap: 4px; padding-bottom: 0; align-items: flex-end; }
+.panel-tabs [role=tab] { border-radius: 4px 4px 0 0; margin-bottom: -1px; }
+.options-panel .filter-row { display: flex; flex-wrap: wrap; gap: 12px; }
+/* the basket: actions, then one row per element (like the search results) */
+.basket-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px; }
+.basket-items { padding: 0 0 4px; }
+.basket-label, .basket-label strong { font-weight: 700; } /* "Basket: N elements" all in bold */
+/* UX-5: an empty basket shows a hint, not four disabled buttons */
+.basket-hint { color: var(--muted); font-size: 12px; margin: 4px 10px 6px; }
+.basket:not(.empty) .basket-hint, .basket.empty .basket-actions, .basket.empty .basket-items { display: none; }
+
+#btn-filters.active { background: var(--accent-soft); border-color: var(--accent); }
+.filter-panel { background: var(--panel); border-bottom: 1px solid var(--line); padding: 6px 10px 8px; font-size: 12px; max-height: 45%; overflow: auto; }
+.filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 4px 0; }
+.filter-row > strong { min-width: 84px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 12px; padding: 1px 8px 1px 4px; cursor: pointer; user-select: none; }
+.chip.small { font-size: 11px; padding: 0 6px 0 2px; }
+.chip input { margin: 0; }
+.swatch { width: 10px; height: 10px; border: 1px solid #0004; border-radius: 2px; display: inline-block; }
+.filter-types summary { cursor: pointer; color: var(--muted); margin: 4px 0; }
+.filter-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; align-items: start; }
+.filter-type-grid fieldset {
+  border: 1px solid var(--line); border-radius: 4px; margin: 0; padding: 4px 6px;
+  display: flex; flex-wrap: wrap; gap: 3px; align-items: center; align-content: flex-start; min-width: 0;
+}
+.filter-type-grid legend { font-weight: 600; padding: 0 4px; }
+.property-panel { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 4px; }
+.property-panel select, .property-panel input { max-width: 200px; font-size: 12px; }
+.diagram-info { font-size: 11px; color: var(--muted); padding: 2px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.diagram-info:empty { display: none; }
+.diagram-body { flex: 1; min-height: 0; position: relative; }
+.tab-panel { position: absolute; inset: 0; overflow: auto; }
+#tab-plantuml { padding: 12px; text-align: center; }
+#tab-plantuml img { max-width: none; background: #fff; box-shadow: 0 1px 4px #0002; }
+#tab-plantuml.fit img { max-width: 100%; }
+#tab-layout { background: var(--diagram-bg); overflow: hidden; }
+/* BR-15: one panel per open diagram; only the active one is visible */
+.doc-panel { position: absolute; inset: 0; overflow: hidden; }
+.doc-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 4px 8px 0; background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
+.doc-tabs[hidden] { display: none; }
+.doc-tab { display: flex; align-items: center; gap: 4px; max-width: 220px; padding: 3px 4px 3px 10px; font-size: 12px; border: 1px solid var(--line); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--bg); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.doc-tab.active { background: var(--diagram-bg); color: inherit; font-weight: 600; position: relative; top: 1px; }
+.doc-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.doc-tab-title { overflow: hidden; text-overflow: ellipsis; }
+.doc-tab-close { border: none; background: none; padding: 0 4px; font-size: 14px; line-height: 1; color: var(--muted); cursor: pointer; }
+.doc-tab-close:hover { color: var(--error); }
+.doc-tab-new { border: none; background: none; padding: 2px 8px; font-size: 16px; line-height: 1; color: var(--muted); cursor: pointer; }
+.doc-tab-new:hover { color: var(--accent); }
+#tab-source { display: flex; flex-direction: column; }
+#source { flex: 1; width: 100%; resize: none; border: none; border-radius: 0; font: 12px/1.45 Consolas, "Cascadia Mono", monospace; padding: 10px; }
+.source-actions { padding: 6px 10px; background: var(--panel); border-top: 1px solid var(--line); }
+.diagram-error { color: var(--error); padding: 20px; white-space: pre-wrap; text-align: left; }
+
+.view-svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
+.view-svg:active { cursor: grabbing; }
+.v-text { font: 11px "Segoe UI", Arial, sans-serif; pointer-events: none; }
+.v-badge { font: 8px "Segoe UI", Arial, sans-serif; fill: #555; pointer-events: none; }
+.v-sprite { pointer-events: none; opacity: .85; }
+.v-node.v-focus:not(.diagram-selected) > .v-shape { stroke-width: 2.5; stroke: #1d2330; }
+.v-dot { cursor: pointer; }
+.v-dot:hover > circle { fill: #2f6fde; }
+.v-conn-label { fill: #333; }
+.v-drill-icon { font: bold 12px "Segoe UI", Arial, sans-serif; fill: #2f6fde; }
+.v-drill-icon.clickable { cursor: pointer; }
+.v-drill-text { fill: #1d2330; }
+.v-node.v-drill:not(.v-drill-nested):hover > rect { stroke: #2f6fde; stroke-width: 2.5; fill: #e5eefc; }
+.v-node.v-drill-nested > text.clickable { cursor: pointer; }
+.v-node.v-drill-nested > text.clickable:hover { fill: #2f6fde; text-decoration: underline; }
+.puml-drill:hover > :first-child { stroke: #2f6fde !important; stroke-width: 2.5 !important; }
+
+/* BR-8: breadcrumb trail of drilled-into views */
+.view-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; padding: 3px 10px; font-size: 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.view-trail:empty { display: none; }
+.view-trail a { color: var(--accent); cursor: pointer; }
+.view-trail a:hover { text-decoration: underline; }
+.view-trail .sep { color: var(--muted); }
+.view-trail .current { font-weight: 600; }
+.v-prop { font: italic 9px "Segoe UI", Arial, sans-serif; fill: #333; pointer-events: none; }
+.layout-legend {
+  position: absolute; left: 10px; bottom: 10px; z-index: 1; background: #fffffff0; color: #222; border: 1px solid #ccc;
+  border-radius: 4px; padding: 6px 8px; font-size: 11px; max-height: 45%; overflow: auto; box-shadow: 0 1px 4px #0002;
+}
+.layout-legend div { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.layout-legend .swatch { width: 14px; height: 10px; }
+.v-hit { stroke: transparent; stroke-width: 10; fill: none; }
+.v-node.clickable, .v-conn.clickable { cursor: pointer; }
+.v-node.clickable:hover > .v-shape, .v-node.v-dot:hover > circle { stroke: var(--accent); stroke-width: 2.5; }
+.v-conn.clickable:hover > path:not(.v-hit) { stroke: #2f6fde; stroke-width: 2.5; }
+.v-node.diagram-selected > .v-shape, .v-node.v-dot.diagram-selected > circle { stroke: #e8590c; stroke-width: 3; }
+.v-conn.diagram-selected > path:not(.v-hit) { stroke: #e8590c; stroke-width: 3; }
+
+/* inline PlantUML SVG (clickable) */
+.puml-svg { background: #fff; box-shadow: 0 1px 4px #0002; }
+#tab-plantuml.fit .puml-svg { max-width: 100% !important; height: auto !important; }
+.puml-clickable { cursor: pointer; }
+/* Entities/clusters: style only the outline (first child). The following
+   children include the ArchiMate sprite (a black-filled path), which must
+   not get a stroke or it smears. Links: the line and arrowheads. */
+.puml-svg g.entity.puml-clickable:hover > :first-child,
+.puml-svg g.cluster.puml-clickable:hover > :first-child,
+.puml-svg g.link.puml-clickable:hover > path:not(.puml-hit),
+.puml-svg g.link.puml-clickable:hover > polygon {
+  stroke: #2f6fde !important; stroke-width: 2.5 !important;
+}
+.puml-svg g.entity.diagram-selected > :first-child,
+.puml-svg g.cluster.diagram-selected > :first-child,
+.puml-svg g.link.diagram-selected > path:not(.puml-hit),
+.puml-svg g.link.diagram-selected > polygon {
+  stroke: #e8590c !important; stroke-width: 3 !important;
+}
+
+.layout-tools { position: absolute; right: 10px; top: 10px; display: flex; gap: 4px; z-index: 1; }
+.layout-tools .sep { width: 1px; background: var(--line); margin: 2px 2px; }
+.layout-tools button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* BR-11 (2.23.0): the Edit switch, and the edit form of the details */
+.edit-switch[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.edit-form { margin: 8px 0 12px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent-soft); }
+.edit-form h3 { margin-top: 0; }
+.edit-form .edit-field { display: flex; flex-direction: column; align-items: stretch; gap: 2px; margin: 0 0 8px; color: var(--muted); }
+.edit-form .edit-field input[type=text], .edit-form .edit-field select, .edit-form textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink); }
+.edit-form .edit-props input { width: 100%; box-sizing: border-box; }
+.edit-form .edit-drop { white-space: nowrap; }
+.edit-result.error { color: var(--error); }
+.edit-result:empty { display: none; }
+/* BR-11 step 2 (2.24.0): the palette for creating, at the left of a generated diagram while editing */
+.palette-strip {
+  position: absolute; left: 6px; top: 50px; bottom: 6px; z-index: 1; width: 176px; display: flex; flex-direction: column;
+  gap: 4px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  overflow-y: auto; overflow-x: hidden; box-shadow: 0 2px 6px #0002;
+}
+.edit-bar ~ .palette-strip { top: 92px; }
+/* the diagram beside the palette, not under it */
+.palette-strip ~ svg { margin-left: 192px; width: calc(100% - 192px) !important; }
+.palette-title { font-weight: 700; font-size: 12px; }
+.palette-filter { width: 100%; box-sizing: border-box; }
+.palette-layer-head { width: 100%; text-align: left; font-size: 12px; font-weight: 600; border: 0; background: transparent; padding: 2px 0; }
+.palette-layer-head.static { cursor: default; }
+.palette-layer { border-left: 3px solid var(--layer, var(--line)); padding-left: 4px; }
+.palette-types { display: grid; grid-template-columns: 1fr; gap: 1px; }
+.palette-type { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; font-size: 12px; padding: 2px 4px; border-color: transparent; background: transparent; cursor: grab; }
+.palette-type:hover { border-color: var(--accent); }
+.palette-type[aria-pressed="true"], .palette-connect[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.palette-type[disabled] { opacity: .35; cursor: not-allowed; }
+.palette-type img { flex: none; }
+.palette-type-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-badge { font-size: 9px; color: var(--muted); width: 15px; }
+.palette-connect { width: 100%; text-align: left; font-size: 12px; }
+.palette-hint { font-size: 11px; color: var(--muted); }
+.palette-hint:empty { display: none; }
+#tab-layout.palette-placing svg { cursor: crosshair; }
+.v-node.connect-from > :first-child { stroke: var(--accent) !important; stroke-width: 3px !important; }
+.type-choice { list-style: none; margin: 6px 0; padding: 0; max-height: 50vh; overflow-y: auto; }
+.type-choice button { width: 100%; text-align: left; border-color: transparent; background: transparent; }
+.type-choice button:hover { border-color: var(--accent); }
+/* BR-25 (2.22.0): a tab that edits a created view; what an update took out of one */
+.edit-bar {
+  position: absolute; left: 10px; top: 10px; z-index: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  max-width: calc(100% - 20px); padding: 4px 8px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 6px;
+}
+.edit-bar + .layout-tools { top: 52px; }
+.lost-box { margin: 8px 0; padding: 6px 10px; background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 4px; }
+.lost-box p { margin: 2px 0; }
+.lost-box ul { margin: 4px 0 6px; padding-left: 18px; }
+.details .origin { margin: -4px 0 6px; font-size: 12px; }
+dialog textarea { display: block; width: 100%; margin: 4px 0; font: inherit; }
+
+/* drag & drop from the tree into the Diagram tab */
+/* tree rows keep the pointer (clicking selects them; dragging works anyway); only the basket label, which can't be clicked, shows the hand */
+.basket-label[draggable="true"] { cursor: grab; }
+.basket-label[draggable="true"]:hover { text-decoration: underline dotted; }
+.basket-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tree-row.dragging { opacity: .5; }
+#tab-layout.drop-target { outline: 3px dashed var(--accent); outline-offset: -6px; }
+#tab-layout.drop-target::after {
+  content: "Drop to add to the diagram"; position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2;
+  background: var(--accent); color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 12px; pointer-events: none;
+}
+
+/* ALT-1: explorer */
+.v-more { cursor: pointer; }
+.v-more rect { fill: #2f6fde; stroke: #fff; stroke-width: 1.5; }
+.v-more text { font: bold 10px "Segoe UI", Arial, sans-serif; fill: #fff; pointer-events: none; }
+.v-more:hover rect { fill: #1d4fb0; }
+@keyframes v-fresh { from { stroke: #2f9e44; stroke-width: 5; } to { stroke-width: 1; } }
+.v-node.v-fresh:not(.diagram-selected) > .v-shape { animation: v-fresh 1.6s ease-out; }
+.node-menu, .dropdown {
+  position: fixed; z-index: 20; min-width: 220px; max-height: 70vh; overflow: auto; background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 16px #0004; padding: 4px 0; font-size: 12px;
+}
+.node-menu .menu-title, .dropdown .menu-title { padding: 4px 12px 6px; font-weight: 600; border-bottom: 1px solid var(--line); margin-bottom: 4px; max-width: 320px; }
+.node-menu button, .dropdown button {
+  display: flex; width: 100%; justify-content: space-between; gap: 16px; text-align: left; border: 0; border-radius: 0;
+  background: none; padding: 4px 12px; color: inherit; font: inherit; cursor: pointer;
+}
+.node-menu button:hover:not(:disabled), .dropdown button:hover:not(:disabled), .node-menu button:focus-visible, .dropdown button:focus-visible { background: var(--accent); color: #fff; outline: none; }
+.node-menu button:disabled, .dropdown button:disabled { opacity: .45; cursor: default; }
+.node-menu .count, .dropdown .count { opacity: .7; }
+.node-menu .count.note, .dropdown .count.note { opacity: .55; font-variant-numeric: tabular-nums; }
+.filter-rules select { max-width: 11em; }
+.chip.rule { gap: 4px; }
+.chip.rule button { padding: 0 2px; }
+.node-menu .menu-row { display: flex; align-items: stretch; }
+/* CM-10 (2.27.0): a submenu opens below its item, indented */
+.node-menu .submenu { padding-left: 12px; border-left: 2px solid var(--line); margin-left: 8px; }
+.node-menu .submenu-opener[aria-expanded=true] .count.note { display: inline-block; transform: rotate(90deg); }
+.node-menu .menu-row > button:first-child { flex: 1; }
+.node-menu .menu-row > .menu-new-tab { flex: 0 0 auto; width: auto; padding: 4px 10px; opacity: .65; border-left: 1px solid var(--line); }
+.node-menu .menu-row > .menu-new-tab:hover:not(:disabled), .node-menu .menu-row > .menu-new-tab:focus-visible { opacity: 1; }
+.node-menu hr, .dropdown hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+
+/* LV-3: overview map */
+.minimap {
+  position: absolute; right: 10px; bottom: 10px; z-index: 1; background: var(--diagram-bg);
+  border: 1px solid #bbb; border-radius: 4px; box-shadow: 0 1px 6px #0003; padding: 2px; line-height: 0; cursor: crosshair;
+}
+.minimap svg { display: block; touch-action: none; }
+.minimap-view { fill: #2f6fde22; stroke: #2f6fde; stroke-width: 1.5; }
+
+/* LV-6: dragging elements in generated diagrams */
+.view-svg .v-node[data-movable] { cursor: move; }
+.view-svg.v-dragging, .view-svg.v-dragging * { cursor: grabbing !important; }
+.v-conn.v-moving { opacity: .2; }
+.v-node.v-faded, .v-conn.v-faded { opacity: .22; } /* stored views: left out by the diagram filters */
+.layout-panel .filter-row select { max-width: 260px; }
+.layout-panel input[type=range] { width: 160px; vertical-align: middle; }
+.layout-panel .hint { color: var(--muted); }
+
+/* ------------------------------------------------------------ details */
+.details { padding: 12px 14px 24px; }
+.details h2 { font-size: 16px; margin: 6px 0 2px; word-break: break-word; }
+.details h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 18px 0 6px; }
+.details .kind { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.details .actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; }
+.details .actions .count { opacity: .7; font-variant-numeric: tabular-nums; } /* CM-11: what a button adds, as in its menu entry */
+.details .doc { white-space: pre-wrap; background: var(--bg); border-radius: 4px; padding: 8px; }
+.details table { width: 100%; border-collapse: collapse; }
+.details td, .details th { text-align: left; vertical-align: top; padding: 3px 4px; border-bottom: 1px solid var(--line); word-break: break-word; }
+.details th { color: var(--muted); font-weight: normal; width: 38%; }
+.details ul.rels { list-style: none; padding: 0; margin: 0; }
+.details ul.rels li { padding: 3px 0; display: flex; gap: 6px; align-items: baseline; border-bottom: 1px solid var(--line); }
+.details ul.rels .glyph { font-family: Consolas, monospace; color: var(--muted); flex: none; width: 112px; font-size: 11px; }
+.details a { color: var(--accent); cursor: pointer; text-decoration: none; }
+.details a:hover { text-decoration: underline; }
+/* 2.19.0: the folder under the name, and the details in tabs under the actions */
+.details .folder-line { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.detail-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 12px -14px 0; padding: 0 14px; border-bottom: 1px solid var(--line); }
+.detail-tabs button { border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; background: none; padding: 4px 10px; font-size: 12px; color: var(--muted); position: relative; top: 1px; }
+.detail-tabs button:hover { color: var(--accent); }
+.detail-tabs button.active { border-color: var(--line); background: var(--panel); color: inherit; font-weight: 600; }
+.detail-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.detail-panel > h3:first-child, .detail-panel > .impact-box:first-child { margin-top: 12px; }
+.details pre { white-space: pre-wrap; font-size: 11px; background: var(--bg); padding: 8px; border-radius: 4px; }
+
+/* ------------------------------------------------------------ dialog */
+dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); width: min(560px, calc(100vw - 32px)); }
+dialog::backdrop { background: #0006; }
+dialog h2 { margin-top: 0; font-size: 16px; }
+dialog label { display: block; margin-bottom: 14px; }
+dialog input { display: block; width: 100%; margin: 4px 0; }
+dialog small { color: var(--muted); }
+dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 0; }
+/* 2.19.0: the list of keyboard shortcuts */
+#keys-dialog h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 14px 0 6px; }
+table.keys { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+table.keys th, table.keys td { text-align: left; vertical-align: top; padding: 4px; border-bottom: 1px solid var(--line); font-weight: normal; }
+
+/* CM-11: the commands (Ctrl+K), js/app/palette.js */
+dialog.palette { width: min(620px, calc(100vw - 32px)); padding: 0; margin-top: 12vh; }
+.palette-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.palette-head input { flex: 1; margin: 0; font-size: 15px; border: 0; outline: none; background: transparent; color: var(--ink); }
+.palette-crumb { flex: 0 1 auto; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 8px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 12px; }
+#palette-list { list-style: none; margin: 0; padding: 4px 0; max-height: min(420px, 55vh); overflow-y: auto; }
+#palette-list li { display: flex; align-items: center; gap: 8px; padding: 5px 14px; cursor: pointer; }
+#palette-list li[aria-selected="true"] { background: var(--accent); color: #fff; }
+#palette-list li .palette-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#palette-list li .palette-hint-right, #palette-list li .palette-more { opacity: .65; font-size: 12px; white-space: nowrap; }
+#palette-list li.palette-empty { color: var(--muted); cursor: default; }
+.palette-icon { display: inline-block; width: 22px; text-align: center; }
+.palette-hint { margin: 0; padding: 6px 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+table.keys th { width: 32%; white-space: nowrap; }
+kbd { display: inline-block; min-width: 1.4em; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--bg); font: 11px/18px Consolas, monospace; text-align: center; }
+dialog input[type=file] { padding: 6px; }
+dialog .settings-group { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 14px; padding: 6px 10px 8px; }
+dialog .settings-group legend { font-weight: 600; padding: 0 4px; }
+dialog .settings-group .group-head { margin: 4px 0 6px; color: var(--muted); }
+dialog details.settings-group > summary { font-weight: 600; cursor: pointer; padding: 2px 0; }
+dialog details.settings-group[open] > summary { margin-bottom: 8px; }
+/* Settings: the groups scroll, the buttons stay in view */
+#settings-dialog { padding: 0; }
+#settings-form { display: flex; flex-direction: column; max-height: calc(100vh - 64px); padding: 16px; box-sizing: border-box; }
+#settings-form .dialog-body { overflow: auto; flex: 1; margin: 0 -4px; padding: 0 4px; }
+#settings-form menu { padding-top: 10px; border-top: 1px solid var(--line); }
+dialog label.check { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+dialog label.check input { display: inline-block; width: auto; margin: 0; }
+dialog label.check.indent { margin-left: 22px; }
+dialog small.indent { display: block; margin: -2px 0 14px 22px; }
+dialog small.warn { display: block; color: var(--error); margin-top: 4px; } /* EN-3: blocked by the CSP */
+dialog small.warn[hidden] { display: none; }
+.dialog-result { margin: 0 0 12px; white-space: pre-wrap; font-size: 12px; }
+.dialog-result:empty { display: none; }
+dialog menu .menu-left { margin-right: auto; }
+.link-state { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0 0 12px; font-size: 12px; }
+.link-state:empty { display: none; }
+.link-state dt { color: var(--muted); }
+.link-state dd { margin: 0; overflow-wrap: anywhere; }
+.link-state .failed { color: var(--error); }
+.export-lines { margin: 0 0 12px; padding-left: 18px; max-height: 200px; overflow: auto; font-size: 12px; }
+.dialog-result.ok { color: #2b8a3e; max-height: 240px; overflow: auto; } /* BL-33: what a replace changed */
+.dialog-result .actions { margin-top: 6px; }
+.dialog-result .actions { display: flex; flex-wrap: wrap; gap: 6px; } /* API 2.10.0: one button per model that has the file's identifier */
+.choose-model-list { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; max-height: 300px; overflow: auto; }
+.choose-model-list button { text-align: left; }
+.panel-default { justify-content: flex-end; } /* "Set to default" of the Options, Filters and Layout tabs */
+.dialog-result.error { color: var(--error); }
+.dialog-result.warn { color: #b35c00; max-height: 240px; overflow: auto; } /* BL-4: what the import left out */
+button.danger { background: var(--error); border-color: var(--error); color: #fff; }
+button.danger:disabled { opacity: .45; }
+button.danger-outline { color: var(--error); }
+button.danger-outline:hover { border-color: var(--error); }
+
+/* impact analysis (BR-12) */
+.impact-box { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--bg); min-width: 0; overflow-wrap: anywhere; }
+.impact-box .controls { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 6px; }
+.impact-box .controls select { max-width: 100%; }
+.impact-box .types { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 8px; }
+.impact-box .chip { font-size: 11px; padding: 0 6px 0 2px; }
+.impact-level { margin: 8px 0 2px; font-weight: 600; font-size: 12px; color: var(--muted); }
+.impact-list { list-style: none; padding: 0; margin: 0; }
+.impact-list li { padding: 2px 0; border-bottom: 1px solid var(--line); }
+.impact-list .via { color: var(--muted); font-size: 11px; display: block; padding-left: 4px; }
+.folder-path a + .sep { color: var(--muted); padding: 0 3px; }
+
+/* multi-selection (CM-6) */
+.tree-row.marked:not(.selected) { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.v-node.marked > .v-shape, .v-node.marked > circle { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 5 3; }
+.v-band { fill: #2f6fde22; stroke: #2f6fde; stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.multi-bar {
+  display: flex; align-items: center; gap: 8px; padding: 3px 10px; font-size: 12px; background: var(--accent-soft);
+  border-bottom: 1px solid var(--line); min-width: 0;
+}
+.multi-bar strong { white-space: nowrap; }
+.multi-bar .ellipsis { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-bar .hint { color: var(--muted); font-size: 11px; margin-left: auto; white-space: nowrap; }
+.multi-bar button { font-size: 12px; }
+
+/* path highlight (CM-9) */
+.view-svg.v-highlighting .v-node:not(.v-hl), .view-svg.v-highlighting .v-conn:not(.v-hl) { opacity: .2; }
+.view-svg.v-highlighting .v-conn.v-hl > path:not(.v-hit) { stroke: #e8590c; stroke-width: 3; }
+
+/* legend entries and chrome with menus (CM-7, CM-8) */
+.layout-legend .legend-row { cursor: context-menu; border-radius: 3px; padding: 0 2px; }
+.layout-legend .legend-row:hover { background: #0000000f; }
+.layout-legend .legend-row:focus-visible, #diagram-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* the open one of Options / Filters / Layout (after #btn-filters.active: a tab can be both open and in use) */
+#btn-options[aria-selected=true], #btn-filters[aria-selected=true], #btn-layout[aria-selected=true] {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+
+/* ------------------------------------------------------------ reports (ALT-4, API 3.6.0) */
+dialog.report-dialog { width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 48px); display: none; flex-direction: column; }
+dialog.report-dialog[open] { display: flex; }
+.report-body { overflow: auto; flex: 1; min-height: 120px; margin-bottom: 10px; }
+.report-intro { color: var(--muted); margin-top: 0; }
+.report-error { color: var(--danger, #b00020); }
+.report-form { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: flex-end; margin-bottom: 12px; }
+.report-form label { margin: 0; }
+.report-form select { display: block; margin-top: 3px; max-width: 280px; }
+.report-via { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.report-inline { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.report-inline[hidden], .report-step[hidden] { display: none; }
+.report-buttons { display: flex; gap: 8px; }
+.report-check { border-bottom: 1px solid var(--line); padding: 4px 0; }
+.report-check summary { cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+.report-check .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.report-check .count.warn { color: var(--ink); font-weight: 600; }
+.report-list { margin: 6px 0 6px 4px; padding-left: 16px; }
+.report-list li { margin: 2px 0; }
+.report-list .more, .report-result .more { color: var(--muted); list-style: none; }
+.linklike { background: none; border: none; padding: 0 2px; color: var(--accent); cursor: pointer; text-align: left; }
+.linklike:hover { text-decoration: underline; }
+.report-diagram { font-size: 11px; padding: 0 6px; margin: 0 4px; }
+.report-scroll { overflow: auto; max-height: 55vh; border: 1px solid var(--line); }
+.report-matrix { border-collapse: collapse; font-size: 12px; }
+.report-matrix th, .report-matrix td { border: 1px solid var(--line); padding: 2px 4px; }
+.report-matrix thead th { position: sticky; top: 0; background: var(--panel); vertical-align: bottom; max-width: 90px; }
+.report-matrix thead th span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-matrix tbody th { position: sticky; left: 0; background: var(--panel); text-align: left; white-space: nowrap; }
+.report-matrix td { text-align: center; min-width: 28px; }
+.report-count { border: none; background: var(--accent-soft, #dbeafe); border-radius: 3px; padding: 0 5px; cursor: pointer; }
+.report-cell-detail h3 { font-size: 13px; margin: 12px 0 4px; }
+.landscape { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.landscape-box { border: 1px solid #0003; border-left: 4px solid #0003; border-radius: 4px; padding: 3px 6px; background: var(--panel); min-width: 90px; }
+.landscape-box.has-children { padding-bottom: 6px; }
+.landscape-box.shared { border-style: dashed; }
+.landscape-head { display: flex; align-items: center; gap: 2px; font-size: 12px; }
+.landscape-head .linklike { color: inherit; font-weight: 600; }
+.landscape-children { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.report-result .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; font-size: 12px; }
+.report-result .legend-item { display: inline-flex; align-items: center; gap: 4px; }
+
+/* UX-3 (2.18.0): icons of frequent actions, drawn in the text colour (a mask), so both themes and offline work;
+   the text stays the button's label and tooltip */
+:root { --icon-options: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1'/><circle cx='15' cy='6' r='2'/><circle cx='9' cy='12' r='2'/><circle cx='17' cy='18' r='2'/></svg>"); }
+:root { --icon-filter: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4h18l-7 8.5V19l-4 2v-8.5z'/></svg>"); }
+:root { --icon-layout: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7' height='5' rx='1'/><rect x='14' y='3' width='7' height='5' rx='1'/><rect x='14' y='16' width='7' height='5' rx='1'/><path d='M10 5.5h4M17.5 8v8'/></svg>"); }
+:root { --icon-share: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='18' cy='5' r='2.5'/><circle cx='6' cy='12' r='2.5'/><circle cx='18' cy='19' r='2.5'/><path d='M8.2 13.2l7.6 4.6M15.8 6.2l-7.6 4.6'/></svg>"); }
+:root { --icon-link: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2'/></svg>"); }
+:root { --icon-download: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v12M7 10l5 5 5-5M4 20h16'/></svg>"); }
+:root { --icon-copy: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='11' height='11' rx='2'/><path d='M5 15V6a2 2 0 0 1 2-2h8'/></svg>"); }
+:root { --icon-refresh: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5'/></svg>"); }
+#btn-options::before, #btn-filters::before, #btn-layout::before, #btn-share-menu::before, #btn-link::before, #btn-copy-png::before, #btn-copy::before, #btn-dl-svg::before, #btn-dl-png::before, #btn-dl-csv::before, #btn-dl-json::before, #btn-dl-puml::before, #btn-export::before, #btn-export-sqlite::before, #btn-export-archimate::before, #btn-refresh::before {
+  content: ''; display: inline-block; flex: none; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;
+  background: currentColor; -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+}
+#btn-options { --icon: var(--icon-options); }
+#btn-filters { --icon: var(--icon-filter); }
+#btn-layout { --icon: var(--icon-layout); }
+#btn-share-menu { --icon: var(--icon-share); }
+#btn-link { --icon: var(--icon-link); }
+#btn-copy-png, #btn-copy { --icon: var(--icon-copy); }
+#btn-dl-svg, #btn-dl-png, #btn-dl-csv, #btn-dl-json, #btn-dl-puml, #btn-export, #btn-export-sqlite, #btn-export-archimate { --icon: var(--icon-download); }
+#btn-refresh { --icon: var(--icon-refresh); }
+/* menu items spread their parts to the sides; with an icon the text stays next to it */
+#btn-link, #btn-copy-png, #btn-copy, #btn-dl-svg, #btn-dl-png, #btn-dl-csv, #btn-dl-json, #btn-dl-puml, #btn-export, #btn-export-sqlite, #btn-export-archimate, #btn-refresh { justify-content: flex-start; gap: 0; }
+
+/* BR-24 (2.27.0): the password form of a protected offline copy, before the app starts */
+.offline-password { position: fixed; z-index: 1000; left: 50%; top: 20vh; transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px 24px; box-shadow: 0 8px 30px rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 8px; background: var(--panel, #fff); }
+.offline-password input { margin: 0 6px; }
+.offline-password-wrong { color: #b00020; }

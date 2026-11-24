@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArchiMate Browser</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='14' height='4' fill='%23f5deaa' stroke='%23555'/%3E%3Crect x='1' y='6' width='14' height='4' fill='%23ffffb5' stroke='%23555'/%3E%3Crect x='1' y='11' width='14' height='4' fill='%23b5ffff' stroke='%23555'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <h1>ArchiMate Browser</h1>
+    <div class="topbar-group">
+      <label class="field">Model
+        <select id="model-select" aria-label="Model"></select>
+      </label>
+      <div class="menu-button">
+        <button id="btn-model-menu" type="button" class="icon-button" aria-haspopup="menu" aria-expanded="false" aria-controls="model-menu"
+          aria-label="Model actions" title="Model actions: import, export, delete">⋮</button>
+        <div id="model-menu" class="dropdown" role="menu" aria-label="Model actions" hidden>
+          <button id="btn-refresh" type="button" role="menuitem" class="online-only" title="Load the model list and the open model again from the API: models and changes made elsewhere (the MCP server, Archi, a script) appear">Refresh</button>
+          <hr class="online-only">
+          <button id="btn-new-model" type="button" role="menuitem" class="online-only" title="Create a new, empty model, with Archi's top-level folders">New model…</button>
+          <button id="btn-import" type="button" role="menuitem" class="online-only" title="Import an ArchiMate Open Exchange (XMI) file as a new model, or replace a model with a new version">Import model…</button>
+          <button id="btn-export" type="button" role="menuitem" class="online-only" title="Download the model as ArchiMate Open Exchange XML">Export model</button>
+          <button id="btn-export-sqlite" type="button" role="menuitem" class="online-only" hidden title="Download the model as an SQLite database with the API's tables (API 3.13.0)">Export as SQLite database</button>
+          <button id="btn-export-archimate" type="button" role="menuitem" class="online-only" title="Download the model in Archi's own format; the API converts it with Archi">Export .archimate</button>
+          <button id="btn-export-offline" type="button" role="menuitem" class="online-only" hidden title="One HTML file that shows this model in a browser without the API, for colleagues: read-only, a snapshot of now (API 3.14.0)">Share as offline copy…</button>
+          <button id="btn-link-update" type="button" role="menuitem" class="online-only" title="Update the model from its linked Archi file now" hidden>Update from file</button>
+          <button id="btn-linked-file" type="button" role="menuitem" class="online-only" title="Link the model to an Archi file on the server, or change or remove its link">Linked file…</button>
+          <hr class="online-only">
+          <button id="btn-report-quality" type="button" role="menuitem" title="What in the model is probably unfinished or wrong (API 3.6.0)">Quality report…</button>
+          <button id="btn-report-matrix" type="button" role="menuitem" title="Which elements of one set connect to which of another, directly or along a path (API 3.6.0)">Relationship matrix…</button>
+          <button id="btn-report-landscape" type="button" role="menuitem" title="The elements below root elements as nested boxes, coloured by a property (API 3.6.0)">Landscape map…</button>
+          <hr class="before-delete online-only">
+          <button id="btn-delete-model" type="button" role="menuitem" class="danger-item online-only" title="Delete the current model from the database">Delete model…</button>
+        </div>
+      </div>
+    </div>
+    <form id="search-form" class="search" role="search">
+      <input id="search-input" type="search" placeholder="Search…  or @property=value" aria-label="Search">
+    </form>
+    <button id="btn-palette" type="button" class="icon-button" aria-label="Commands" title="Commands: find an item and choose what to do with it, or run a command of the diagram (Ctrl+K)">⌘</button>
+    <button id="btn-edit-mode" type="button" class="edit-switch" aria-pressed="false" hidden>✎ <span>Edit</span></button>
+    <span id="status" class="status" role="status"></span>
+    <div class="menu-button who online-only">
+      <button id="btn-who" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="who-menu"
+        title="Who you work as: sign in with your own API key">Sign in</button>
+      <div id="who-menu" class="dropdown dropdown-end" role="menu" aria-label="Signed in" hidden>
+        <p id="who-text" class="menu-note"></p>
+        <button id="btn-signin" type="button" role="menuitem">Sign in…</button>
+        <button id="btn-signout" type="button" role="menuitem" hidden>Sign out</button>
+      </div>
+    </div>
+    <button id="btn-settings" type="button">Settings</button>
+  </header>
+
+  <div id="offline-banner" class="offline-banner" role="note" hidden></div>
+
+  <div id="api-banner" class="api-banner" role="alert" hidden>
+    <strong id="api-banner-title">The API is not reachable.</strong>
+    <span id="api-banner-msg" class="msg"></span>
+    <span id="api-banner-next" class="next" aria-hidden="true"></span>
+    <button id="btn-api-retry" type="button">Retry now</button>
+  </div>
+
+  <div id="change-bar" class="change-bar" role="status" hidden>
+    <span id="change-bar-msg" class="msg"></span>
+    <button id="btn-change-refresh" type="button" class="primary">Refresh</button>
+    <button id="btn-change-show" type="button" title="The model's recent changes, in the details">Show changes</button>
+    <button id="btn-change-dismiss" type="button" title="Keep working with the model as loaded">Dismiss</button>
+  </div>
+
+  <nav id="pane-switch" class="pane-switch" role="tablist" aria-label="Panes">
+    <button type="button" role="tab" data-pane="tree" aria-selected="true">Tree</button>
+    <button type="button" role="tab" data-pane="diagram" aria-selected="false">Diagram</button>
+    <button type="button" role="tab" data-pane="details" aria-selected="false">Details</button>
+  </nav>
+
+  <main class="layout">
+    <aside class="pane tree-pane" aria-label="Model tree">
+      <!-- three sections, each collapsible and scrolling on its own: the basket, search results, the model tree -->
+      <section class="side-section basket empty" id="basket" data-section="basket" aria-label="Basket">
+        <div class="side-head">
+          <button type="button" class="side-toggle" aria-expanded="true" aria-controls="basket-body" title="Collapse"></button>
+          <span id="basket-label" class="basket-label">Basket: <strong id="basket-count">0</strong> elements</span>
+        </div>
+        <div id="basket-body" class="side-body">
+          <div class="basket-actions">
+            <button id="btn-basket-render" type="button">Diagram of basket</button>
+            <button id="btn-basket-expand" type="button" title="Diagram of basket elements plus their neighbours up to the selected depth">+ neighbours</button>
+            <button id="btn-basket-explore" type="button" title="Explorer starting with the basket elements: grow it by clicking +N on elements">Explore</button>
+            <button id="btn-basket-clear" type="button" class="link">Clear</button>
+          </div>
+          <p id="basket-hint" class="basket-hint">Collect elements here with “Add to basket” in their details or menus.</p>
+          <div id="basket-items" class="basket-items" aria-label="Basket elements"></div>
+        </div>
+      </section>
+      <section id="search-results" class="side-section search-results" data-section="search" aria-label="Search results" hidden>
+        <div class="side-head">
+          <button type="button" class="side-toggle" aria-expanded="true" aria-controls="search-tree" title="Collapse"></button>
+          <strong id="search-title" class="ellipsis">Search results</strong>
+          <button id="btn-search-close" type="button" class="link">Close</button>
+        </div>
+        <div id="search-tree" class="side-body"></div>
+      </section>
+      <section class="side-section tree-section" data-section="tree" aria-label="Model tree">
+        <div class="side-head">
+          <button type="button" class="side-toggle" aria-expanded="true" aria-controls="tree" title="Collapse"></button>
+          <strong>Model tree</strong>
+        </div>
+        <div id="tree" class="side-body"></div>
+      </section>
+    </aside>
+
+    <section class="pane diagram-pane" aria-label="Diagram">
+      <div class="pane-head diagram-head">
+        <strong id="diagram-title" class="ellipsis">No diagram</strong>
+        <span class="pane-toggles">
+          <button id="btn-pane-tree" type="button" data-pane-toggle="tree" aria-pressed="false" title="Close the model tree (and open it again)">◧</button>
+          <button id="btn-pane-details" type="button" data-pane-toggle="details" aria-pressed="false" title="Close the details pane (and open it again)">◨</button>
+          <button id="btn-fullscreen" type="button" aria-pressed="false" title="Full screen: the diagram fills the screen (Esc leaves it)">⛶</button>
+        </span>
+        <div class="menu-button">
+          <button id="btn-share-menu" type="button" class="has-caret" aria-haspopup="menu" aria-expanded="false" aria-controls="share-menu"
+            title="Copy a link to the diagram, or download it">Share</button>
+          <div id="share-menu" class="dropdown dropdown-end" role="menu" aria-label="Share" hidden>
+            <button id="btn-link" type="button" role="menuitem" title="Copy a link that reopens this diagram (with filters, layout options and moved elements)">Copy link</button>
+            <hr>
+            <button id="btn-dl-svg" type="button" role="menuitem" title="The whole diagram as SVG (PlantUML's image when PlantUML is shown)">Download .svg</button>
+            <button id="btn-dl-png" type="button" role="menuitem" title="The whole diagram as PNG at 2× resolution (PlantUML's image when PlantUML is shown)">Download .png</button>
+            <button id="btn-copy-png" type="button" role="menuitem" title="The whole diagram as an image (PNG) in the clipboard, to paste into a document or a chat">Copy image</button>
+            <hr>
+            <button id="btn-dl-csv" type="button" role="menuitem" title="The diagram's elements: id, XMI identifier, type, layer, name, documentation, folder, properties (JSON); semicolon-separated">Download elements as CSV</button>
+            <button id="btn-dl-json" type="button" role="menuitem" title="What the diagram shows, with attributes and properties: elements, relationships, notes, groups, links to views, lines">Download as JSON</button>
+            <hr>
+            <button id="btn-copy" type="button" role="menuitem">Copy source</button>
+            <button id="btn-dl-puml" type="button" role="menuitem">Download .puml</button>
+            <button id="btn-open" type="button" role="menuitem" title="Open the rendered PlantUML image in a new tab (when PlantUML is shown)">Open PlantUML image</button>
+          </div>
+        </div>
+        <div class="menu-button">
+          <button id="btn-view-menu" type="button" class="icon-button" aria-haspopup="menu" aria-expanded="false" aria-controls="view-menu"
+            aria-label="Show as" title="Show as: Diagram, PlantUML or Source">⋮</button>
+          <div id="view-menu" class="dropdown dropdown-end" role="menu" aria-label="Show as" hidden>
+            <button type="button" role="menuitemradio" data-tab="layout" aria-checked="true" title="Drawn in the browser: stored views with their own coordinates, generated diagrams with automatic layout (ELK)">Diagram</button>
+            <button type="button" role="menuitemradio" data-tab="plantuml" class="online-only" aria-checked="false" title="Optional: rendered by the PlantUML server (sends the diagram source)">PlantUML</button>
+            <button type="button" role="menuitemradio" data-tab="source" aria-checked="false" title="PlantUML source (export, editing)">Source</button>
+          </div>
+        </div>
+      </div>
+      <!-- Options, Filters and Layout: tabs that show one panel at a time (a click on the open one closes it) -->
+      <div class="toolbar panel-tabs" role="tablist" aria-label="Diagram settings">
+        <button id="btn-options" type="button" role="tab" aria-selected="false" aria-controls="diagram-options"
+          title="Options of generated diagrams: direction, neighbour depth, follow">Options</button>
+        <button id="btn-filters" type="button" role="tab" aria-selected="false" aria-controls="filter-panel">Filters</button>
+        <button id="btn-layout" type="button" role="tab" aria-selected="false" aria-controls="layout-panel" title="Automatic layout, nesting, labels and colours by a property, and manual positions">Layout</button>
+      </div>
+      <div id="diagram-options" class="filter-panel options-panel" role="tabpanel" aria-label="Options" hidden>
+        <div class="filter-row" role="group" aria-label="Generated diagrams">
+        <label class="field">Direction
+          <select id="opt-direction">
+            <option value="TB">Top → bottom</option>
+            <option value="LR">Left → right</option>
+          </select>
+        </label>
+        <label class="field">Neighbour depth
+          <select id="opt-depth">
+            <option>1</option><option>2</option><option>3</option>
+          </select>
+        </label>
+        <label class="field" title="Which relationships the neighbourhood walk follows from each element">Follow
+          <select id="opt-follow">
+            <option value="both">both directions</option>
+            <option value="out">outgoing →</option>
+            <option value="in">← incoming</option>
+          </select>
+        </label>
+        </div>
+        <div class="filter-row panel-default">
+          <button id="btn-options-default" type="button" title="Direction top → bottom, neighbour depth 1, follow both directions">Set to default</button>
+        </div>
+      </div>
+      <div id="filter-panel" class="filter-panel" role="tabpanel" aria-label="Filters" hidden>
+        <div id="type-filter-panel"></div>
+        <div id="property-panel" class="property-panel"></div>
+        <div class="filter-row panel-default">
+          <button id="btn-filters-default" type="button" title="All element and relationship types, no property filter, any language">Set to default</button>
+        </div>
+      </div>
+      <div id="layout-panel" class="filter-panel layout-panel" role="tabpanel" aria-label="Layout" hidden></div>
+      <div id="doc-tabs" class="doc-tabs" role="tablist" aria-label="Open diagrams" hidden></div>
+      <nav id="view-trail" class="view-trail" aria-label="View drill-down trail"></nav>
+      <div id="diagram-info" class="diagram-info" role="status"></div>
+      <div id="multi-bar" class="multi-bar" role="status" hidden></div>
+      <div class="diagram-body">
+        <div id="tab-layout" class="tab-panel" role="tabpanel">
+          <div class="placeholder" data-i18n="html.startHint">Select a view, or an element and choose <em>Neighbourhood diagram</em>, or collect elements into the basket.</div>
+        </div>
+        <div id="tab-plantuml" class="tab-panel fit" role="tabpanel" hidden>
+          <div class="placeholder" data-i18n="html.startHint">Select a view, or an element and choose <em>Neighbourhood diagram</em>, or collect elements into the basket.</div>
+        </div>
+        <div id="tab-source" class="tab-panel" role="tabpanel" hidden>
+          <textarea id="source" spellcheck="false" aria-label="PlantUML source"></textarea>
+          <div class="source-actions"><button id="btn-rerender" type="button">Render edited source</button></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="pane details-pane" aria-label="Details">
+      <div id="details" class="details">
+        <div class="placeholder">Select an item in the tree.</div>
+      </div>
+    </aside>
+  </main>
+
+  <dialog id="signin-dialog">
+    <form method="dialog" id="signin-form">
+      <h2>Sign in</h2>
+      <div class="dialog-body">
+        <p id="signin-why" class="warn" hidden></p>
+        <label>Your API key
+          <input name="key" type="password" autocomplete="off" required>
+          <small>Your administrator gives you a key of your own (archimateapi.bat keys add-key). Changes you make are recorded under your name.</small>
+        </label>
+        <label class="check"><input name="remember" type="checkbox">
+          <span>Remember the key in this browser</span></label>
+        <p id="signin-result" class="dialog-result"></p>
+      </div>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button id="btn-signin-run" value="ok" class="primary">Sign in</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <form method="dialog" id="settings-form">
+      <h2>Settings</h2>
+      <div class="dialog-body">
+      <fieldset class="settings-group">
+        <legend>General</legend>
+      <label>Language
+        <select name="lang">
+          <option value="">Browser default</option>
+          <option value="en">English</option>
+          <option value="cs">Čeština</option>
+        </select>
+        <small>Changing the language reloads the page (the open diagram stays).</small>
+      </label>
+      </fieldset>
+      <fieldset class="settings-group online-only">
+        <legend>Connection</legend>
+      <label>API base URL
+        <input name="apiBase" required>
+        <small data-i18n="html.apiBase">Use <code>/api/v2</code> when served by <code>server/serve.py</code> (proxy, no CORS needed).
+          A direct URL such as <code>http://localhost:8000/api/v2</code> only works if the API allows CORS.</small>
+        <small id="api-version-note"></small>
+        <small id="api-csp-note" class="warn" hidden></small>
+      </label>
+      <label>API key (X-API-Key)
+        <input name="apiKey" type="password" autocomplete="off">
+        <small id="proxy-key-note">Leave empty if the proxy injects the key.</small>
+      </label>
+      <label class="check"><input name="apiKeyRemember" type="checkbox">
+        <span>Remember the key in this browser</span></label>
+      <small class="indent" data-i18n="html.apiKeyRemember">Without this, the key is forgotten when the browser is closed, and new tabs ask for it again
+        (it is kept in session storage, not on disk). Safest is no key in the browser at all: <code>archimatebrowser.bat start</code> lets the proxy add it.</small>
+      </fieldset>
+      <fieldset class="settings-group online-only">
+        <legend>Diagrams</legend>
+      <label>PlantUML server
+        <input name="plantumlServer" required>
+        <small data-i18n="html.plantumlServer">The diagram source (element names) is sent to this server. Use a self-hosted
+          server (e.g. <code>docker run -p 8088:8080 plantuml/plantuml-server</code> → <code>http://localhost:8088</code>) for confidential models.</small>
+        <small id="plantuml-csp-note" class="warn" hidden></small>
+      </label>
+      <label class="check"><input name="plantumlLegend" type="checkbox">
+        <span>PlantUML: a legend of the element types</span></label>
+      <label class="check"><input name="plantumlSketch" type="checkbox">
+        <span>PlantUML: drawn as by hand (a sketch)</span></label>
+      <label>Diagram of the whole model: up to (elements)
+        <input name="wholeModelMax" type="number" min="0" max="5000" step="1">
+        <small data-i18n="html.wholeModelMax">Right-click Folders or Elements in the tree for a diagram of the whole model; it is offered
+          for models with at most this many elements. 0: never.</small>
+      </label>
+      </fieldset>
+      </div>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button value="save" class="primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog">
+    <form method="dialog" id="import-form">
+      <h2>Import model</h2>
+      <p class="muted" data-i18n="html.importIntro">Creates a <strong>new model</strong> from an ArchiMate 3 Open Exchange file (<code>POST /models/import</code>).
+        The file is validated by the API. A file of a model that is already there is refused, unless you replace that model
+        or import the file as a separate model (a copy).</p>
+      <label>File
+        <input name="file" type="file" accept=".xml,.xmi,.archimate,application/xml,text/xml" required>
+      </label>
+      <small class="muted">Also an Archi file (.archimate): the API converts it with Archi.</small>
+      <label class="check"><input name="replace" type="checkbox">
+        <span>Replace the model with the file's identifier, if there is one</span></label>
+      <small class="indent" data-i18n="html.importReplace">For a new version of a model, exported again from its source. You first see what would
+        change, and confirm. The model keeps its number; its content is replaced by the file's in one step, and a file that fails
+        leaves it as it was. Diagram links and moved elements of that model may no longer fit; baskets are kept.</small>
+      <div id="import-result" class="dialog-result" role="status"></div>
+      <menu>
+        <button id="btn-link-new" type="button" class="menu-left" title="Import an Archi or exchange file that lies on the server and keep the model updated from it">Link a file on the server…</button>
+        <button value="cancel" formnovalidate>Close</button>
+        <button id="btn-import-run" value="import" class="primary">Import</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="new-model-dialog">
+    <form method="dialog" id="new-model-form">
+      <h2>New model</h2>
+      <label>Name
+        <input name="name" required maxlength="500" autocomplete="off">
+      </label>
+      <label>Documentation
+        <textarea name="documentation" rows="3"></textarea>
+      </label>
+      <label class="check"><input name="folders" type="checkbox" checked> Archi's top-level folders (Strategy, Business, Application, …, Relations, Views)</label>
+      <div id="new-model-result" class="dialog-result" role="status"></div>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button id="btn-new-model-create" value="create" class="primary">Create</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="link-dialog">
+    <form method="dialog" id="link-form">
+      <h2 id="link-title">Linked file</h2>
+      <p class="muted" data-i18n="html.linkIntro">A linked model is updated from a file that the API reads on the server, an
+        Archi file (<code>.archimate</code>) or an exchange file (<code>.xml</code>, API 3.1.0), by hand or every few minutes,
+        and cannot be changed otherwise. Only files in the folders the server allows can be linked.</p>
+      <label>File on the server
+        <span class="link-path-row">
+          <input name="path" required autocomplete="off" placeholder="D:\Models\Model.archimate">
+          <button id="btn-link-browse" type="button" title="Pick the file from the folders the server allows (API 3.20.0)">Browse…</button>
+        </span>
+      </label>
+      <div id="link-picker" class="link-picker" hidden></div>
+      <label>Update every (minutes; empty: by hand only)
+        <input name="interval" type="number" min="1" max="10080" step="1">
+      </label>
+      <dl id="link-state" class="link-state"></dl>
+      <div id="link-result" class="dialog-result" role="status"></div>
+      <menu>
+        <button id="btn-link-remove" type="button" class="menu-left">Unlink</button>
+        <button value="cancel" formnovalidate>Close</button>
+        <button id="btn-link-now" type="button">Update now</button>
+        <button id="btn-link-save" value="save" class="primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="choose-model-dialog">
+    <form method="dialog">
+      <h2>Which model?</h2>
+      <p id="choose-model-text"></p>
+      <div id="choose-model-list" class="choose-model-list"></div>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="report-dialog" class="report-dialog">
+    <h2 id="report-title"></h2>
+    <div id="report-body" class="report-body"></div>
+    <menu>
+      <button id="btn-report-close" type="button">Close</button>
+    </menu>
+  </dialog>
+
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <p id="confirm-text"></p>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button id="btn-confirm-ok" value="ok" class="primary">OK</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="export-dialog">
+    <form method="dialog">
+      <h2>Export model</h2>
+      <p id="export-text"></p>
+      <ul id="export-lines" class="export-lines"></ul>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button id="btn-export-all" value="all">Export as is</button>
+        <button id="btn-export-omit" value="omit" class="primary">Leave them out</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog">
+    <form method="dialog" id="delete-form">
+      <h2>Delete model</h2>
+      <p data-i18n="html.deleteIntro">This permanently deletes <strong id="delete-model-name"></strong> and everything in it
+        (<span id="delete-model-counts"></span>) from the database. It cannot be undone —
+        use <em>Export model</em> first if you may need it again.</p>
+      <label>Type the model name to confirm
+        <input name="confirmName" autocomplete="off" required>
+      </label>
+      <div id="delete-result" class="dialog-result" role="status"></div>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button id="btn-delete-run" value="delete" class="danger" disabled>Delete model</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- ELK (Eclipse Layout Kernel, EPL-2.0) for automatic layout; vendored, runs in a Web Worker -->
+  <script src="vendor/elk/elk-api.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

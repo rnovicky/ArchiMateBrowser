@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArchiMate Browser tests</title>
+  <style>
+    body { font: 13px/1.4 "Segoe UI", Arial, sans-serif; margin: 16px; color: #1d2330; background: #fff; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    #summary { font-weight: 600; margin: 8px 0; }
+    #summary.fail { color: #c92a2a; } #summary.pass { color: #2b8a3e; }
+    .r { padding: 2px 0; } .r .s { display: inline-block; width: 44px; font-weight: 600; }
+    .pass .s { color: #2b8a3e; } .fail .s { color: #c92a2a; } .skip .s { color: #868e96; }
+    .r pre { margin: 2px 0 6px 48px; white-space: pre-wrap; color: #c92a2a; font-size: 12px; }
+    .suite { color: #868e96; }
+    form { margin: 4px 0 10px; } input { width: 260px; }
+    /* the app under test (smoke tests) runs in this frame */
+    #app-frame { border: 1px solid #ccc; width: 1400px; height: 900px; display: block; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>ArchiMate Browser tests</h1>
+  <form><label>Filter <input name="filter" placeholder="e.g. store, smoke, plantuml"></label> <button>Run</button></form>
+  <div id="summary">Running…</div>
+  <div id="results"></div>
+  <!-- ELK for the layout tests, as in the app's index.html -->
+  <script src="../vendor/elk/elk-api.js"></script>
+  <script type="module" src="runner.js"></script>
+</body>
+</html>
