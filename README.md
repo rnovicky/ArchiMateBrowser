@@ -14,7 +14,7 @@ browser uses `/api/v2`), and **visualizing** selected parts of it — with **Pla
 stdlib macros**, or with a **native SVG renderer** that redraws stored views
 using their original coordinates.
 
-> Status: version 2.31.0. It browses and draws; with a key
+> Status: version 2.32.0. It browses and draws; with a key
 > that may write (role `editor`, API 3.15.0 and 3.16.0) it also edits:
 > created views ([Created views](#created-views-saving-a-diagram-as-a-view-2220)),
 > elements and relationships, the palette, deleting and filing
@@ -856,6 +856,10 @@ their own coordinates):
   * *Placement:* network simplex, Brandes-Köpf or linear segments.
   * *Lines:* orthogonal, polyline or curved (splines).
   * *Bundle at busy elements:* turns the hub ports on or off.
+* **Labels → Relationship names** (2.32.0) draws the names of relationships
+  next to their lines, or not. It applies to every diagram, stored views
+  included, at once and without a new layout, and to *Download .svg/.png*
+  and *Copy image*; it is remembered in this browser.
 
   Any change re-lays the diagram. The button shows the active preset
   (*Layout: Readable*, or *Custom*).
@@ -1927,6 +1931,13 @@ browser, in the same way as the API's script of the same name: the page,
 `ACCESS_RIGHTS.md`, and `MANIFEST.txt`, the list of its files, with dev-only material
 (`tests/`, `tools/`, `inputs/`, the working documents `IMPROVEMENTS.md`,
 `PLAN.md`, caches, `.env`, git metadata) left out.
+
+The Markdown files in the package (README, CHANGELOG, ...) link to files the
+package leaves out, such as the working documents and the other projects'
+files. The script rewrites those links to the same file in the project's
+public repository on GitHub (`https://github.com/rnovicky/<project>`), so
+that they work in an installation; links to files in the package stay
+relative.
 
 ```powershell
 .\createinstallpackage.ps1

@@ -813,6 +813,11 @@ export function svgToString(svg, { bounds = null } = {}) {
   clone.querySelectorAll('[transform^="translate"]').forEach(g => g.closest('.v-node') && g.removeAttribute('transform'));
   clone.querySelectorAll('.diagram-selected, .v-moving, .v-fresh, .marked, .v-hl').forEach(g => g.classList.remove('diagram-selected', 'v-moving', 'v-fresh', 'marked', 'v-hl'));
   clone.querySelectorAll('.v-more, .v-band').forEach(g => g.remove()); // explorer controls are not part of the picture
+  // 2.32.0: relationship names hidden in the page are left out of the picture too
+  if (svg.hasAttribute('data-hide-rel-labels')) {
+    clone.querySelectorAll('.v-conn-label').forEach(x => x.remove());
+    clone.removeAttribute('data-hide-rel-labels');
+  }
   const cs = getComputedStyle(svg);
   const vars = ['--diagram-bg', '--diagram-line', '--diagram-ink'];
   let s = new XMLSerializer().serializeToString(clone);

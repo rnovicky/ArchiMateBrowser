@@ -179,6 +179,7 @@ export function manualButtons() {
 /** Put a rendered diagram (renderViewSvg result) into its document's panel, with zoom tools, legend and minimap. */
 export function mountLayout(layout, deco = {}, { generated = false, doc = state.doc } = {}) {
   doc.layout = layout;
+  layout.svg.toggleAttribute('data-hide-rel-labels', !!settings.hideRelLabels); // 2.32.0
   if (RENDER_MODE) document.dispatchEvent(new CustomEvent('archi-render-drawn', { detail: { doc } })); // RN-1 (2.29.0)
   doc.highlight = null; // a new drawing has no highlighted path (CM-9)
   layout.svg.addEventListener('click', () => clearHighlight()); // background click (element clicks don't bubble here)
@@ -826,6 +827,12 @@ export function inDiagram(id) {
   const def = state.diagramDef;
   if (!def || def.kind === 'view') return false;
   return def.kind === 'explore' ? def.ids.includes(id) : shownIds().has(id);
+}
+
+/** 2.32.0: the names of relationships drawn or not, in every open diagram at once (no new layout). */
+export function setRelLabelsHidden(hidden) {
+  saveSettings({ hideRelLabels: !!hidden });
+  for (const d of state.docs) d.layout?.svg.toggleAttribute('data-hide-rel-labels', !!hidden);
 }
 
 /** "Clear diagram": an empty diagram to add elements to (← Back restores the previous one). */

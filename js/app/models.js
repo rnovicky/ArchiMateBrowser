@@ -85,7 +85,9 @@ export async function loadModels() {
 function fillModelSelect(models) {
   // copies often keep the name too: then the number tells them apart
   const named = name => models.filter(m => m.name === name).length;
-  $('#model-select').replaceChildren(...models.map(m => h('option', { value: m.id }, named(m.name) > 1 ? `${m.name} (#${m.id})` : m.name)));
+  // 2.32.0: by name (as people look for them; the API lists them by id), copies by id
+  const sorted = [...models].sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true }) || a.id - b.id);
+  $('#model-select').replaceChildren(...sorted.map(m => h('option', { value: m.id }, named(m.name) > 1 ? `${m.name} (#${m.id})` : m.name)));
 }
 
 /**

@@ -325,6 +325,8 @@ img.sprite { width: 12px; height: 12px; flex: none; display: inline-block; verti
 .v-dot { cursor: pointer; }
 .v-dot:hover > circle { fill: #2f6fde; }
 .v-conn-label { fill: #333; }
+/* 2.32.0: Layout → "Relationship names" off */
+svg[data-hide-rel-labels] .v-conn-label { display: none; }
 .v-drill-icon { font: bold 12px "Segoe UI", Arial, sans-serif; fill: #2f6fde; }
 .v-drill-icon.clickable { cursor: pointer; }
 .v-drill-text { fill: #1d2330; }

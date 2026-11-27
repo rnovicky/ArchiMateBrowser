@@ -3315,4 +3315,47 @@ describe('smoke', () => {
       for (const v of (await created()).filter(x => x.name === 'Orthogonal view')) await viewsApi(`/views/${v.id}`, 'DELETE');
     }
   });
+
+  // ---------------------------------------------------------------- 2.32.0
+
+  test('2.32.0: the models in the model list by name', async () => {
+    const app = await openApp(`#model=${M}`);
+    const names = app.$$('#model-select option').map(o => o.textContent);
+    assert.ok(names.length >= 2, JSON.stringify(names));
+    const sorted = [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+    assert.deepEqual(names, sorted);
+    assert.equal(app.$('#model-select').selectedOptions[0].textContent, 'Fixture Model', 'the open model stays selected');
+  });
+
+  test('2.32.0: Layout → Relationship names: hidden in every diagram and in its export, shown again', async () => {
+    // Billing Service "bills" Order Handling: a named relationship
+    const app = await openApp(`#model=${M}&d=el~${E.billingService}.${E.orderHandling}`);
+    await waitFor(() => app.diagramNodes().length === 2, { what: 'the diagram', timeout: 20000 });
+    const labels = () => app.$$('#tab-layout .v-conn-label');
+    const visible = () => labels().filter(l => app.win.getComputedStyle(l).display !== 'none').length;
+    const exported = async () => {
+      const { svgToString } = await import('../../js/viewsvg.js');
+      const layout = app.win.document.querySelector('#tab-layout svg.view-svg');
+      return (svgToString(layout).match(/v-conn-label/g) || []).length - 1; // the export's own style names it once
+    };
+    assert.ok(labels().length > 0, 'the fixture has named relationships here');
+    assert.equal(visible(), labels().length);
+    app.$('#btn-layout').click();
+    const box = await waitFor(() => app.$('#layout-panel #opt-rel-labels'), { what: 'the checkbox' });
+    assert.equal(box.checked, true, 'shown by default');
+    box.click();
+    await waitFor(() => visible() === 0, { what: 'names hidden' });
+    assert.equal(await exported(), 0, 'and left out of Download .svg');
+    assert.equal(JSON.parse(app.win.localStorage.getItem(SETTINGS)).hideRelLabels, true, 'remembered');
+    assert.equal(app.$('#btn-layout-default').disabled, false, 'Set to default offered');
+    // a stored view too
+    app.win.location.hash = `#model=${M}&view=${V(1)}`;
+    await waitFor(() => app.$('#diagram-title').textContent.startsWith('View: '), { what: 'a stored view', timeout: 20000 });
+    await waitFor(() => app.$('#tab-layout svg.view-svg')?.hasAttribute('data-hide-rel-labels'), { what: 'hidden there too' });
+    // shown again by Set to default
+    app.$('#btn-layout-default').click();
+    await waitFor(() => !app.$('#tab-layout svg.view-svg').hasAttribute('data-hide-rel-labels'), { what: 'shown again' });
+    assert.equal(app.$('#layout-panel #opt-rel-labels').checked, true);
+    assert.deepEqual(app.errors, []);
+  });
 });

@@ -1306,4 +1306,10 @@ export const CS = {
   'Created view by {who}': 'Vytvořený pohled, autor: {who}',
   'Created by': 'Vytvořil(a)',
   'Created on': 'Vytvořeno',
+  // 2.32.0
+  'Labels': 'Popisky',
+  'Relationship names': 'Názvy vztahů',
+  'Draw the name of each relationship next to its line, in every diagram (generated and stored views)': 'Kreslit název každého vztahu u jeho čáry, ve všech diagramech (generovaných i uložených pohledech)',
+  'Balanced preset, no nesting, relationship names shown, no label or colour by a property; moved elements stay (Manual: Reset)': 'Předvolba Vyvážené, bez vnoření, názvy vztahů zobrazeny, bez popisku a barvy podle vlastnosti; přesunuté prvky zůstanou (Ručně: Obnovit)',
+  'Labels and colours by a property apply to stored views too, as do relationship names.': 'Popisky a barvy podle vlastnosti platí i pro uložené pohledy, stejně jako názvy vztahů.',
 };

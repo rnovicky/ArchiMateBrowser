@@ -29,6 +29,7 @@ export const DEFAULTS = {
   lang: '', // EN-7: UI language en | cs ('' = the browser's language if supported, else English)
   paneWidths: null, // EN-7: { tree, details } in px (null = default widths)
   paneClosed: null, // 2.28.0: { tree, details }: true for a closed side pane
+  hideRelLabels: false, // 2.32.0: the names of relationships are not drawn in diagrams (Layout tab)
 };
 
 function read() {

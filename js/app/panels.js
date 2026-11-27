@@ -16,7 +16,7 @@ import * as graph from '../graph.js';
 import { fill } from './details.js';
 import {
   countHidden, describeDef, layoutGenerated, manualButtons, manualKey, nestingMode, notesForDiagram, setDiagram,
-  setNesting, showDiagramError, showView, updateOptionHints,
+  setNesting, setRelLabelsHidden, showDiagramError, showView, updateOptionHints,
 } from './diagram.js';
 import { keyOut, select, writeHash } from './routing.js';
 import { $, state } from './state.js';
@@ -30,7 +30,8 @@ import { RENDER_MODE, errorMessage, h, startJob, status } from './ui.js';
 export const optionsAreDefault = () => settings.plantumlDirection === DEFAULTS.plantumlDirection
   && Number(settings.neighbourDepth) === DEFAULTS.neighbourDepth && (settings.neighbourDirection || 'both') === DEFAULTS.neighbourDirection;
 export const filtersAreDefault = () => state.filter.isDefault() && !state.props.filterName && !state.props.lang;
-export const layoutIsDefault = () => state.layoutPrefs.isDefault() && nestingMode() === 0 && !state.props.label && !state.props.colour;
+export const layoutIsDefault = () => state.layoutPrefs.isDefault() && nestingMode() === 0 && !state.props.label && !state.props.colour
+  && !settings.hideRelLabels;
 
 /** Enable each tab's "Set to default" only when something differs from the defaults. */
 export function updateDefaultButtons() {
@@ -62,6 +63,7 @@ export function filtersToDefault() {
 
 /** Layout tab: the Balanced preset, no nesting, no Label or Colour by; moved elements stay. */
 export function layoutToDefault() {
+  setRelLabelsHidden(false); // 2.32.0
   setLayoutPrefs(LayoutPrefs.decode(''), { rerender: false });
   setNesting(0, { rerender: false });
   setPropertyOptions(new PropertyOptions({ ...state.props, label: '', colour: '' }), { redraw: true });
@@ -136,6 +138,12 @@ export function renderLayoutPanel() {
       h('label', { class: 'chip', title: t('Relationships of one type leave busy elements (5+ relationships) from one point') },
         h('input', { type: 'checkbox', checked: lp.hubs, onchange: e => setLayoutPrefs(lp.with({ hubs: e.target.checked })) }), t('Bundle at busy elements'))),
     nestingRow(),
+    // 2.32.0: the names of relationships, in generated diagrams and stored views alike
+    h('div', { class: 'filter-row' }, h('strong', {}, t('Labels')),
+      h('label', { class: 'chip', title: t('Draw the name of each relationship next to its line, in every diagram (generated and stored views)') },
+        h('input', { type: 'checkbox', id: 'opt-rel-labels', checked: !settings.hideRelLabels,
+          onchange: e => { setRelLabelsHidden(!e.target.checked); updateDefaultButtons(); } }),
+        t('Relationship names'))),
     propertyDisplayRow(state.props, state.store?.propertyIndex, o => setPropertyOptions(o)),
     h('div', { class: 'filter-row' }, h('strong', {}, t('Manual')),
       ...manualButtons(),
@@ -147,11 +155,11 @@ export function renderLayoutPanel() {
     h('div', { class: 'filter-row panel-default' },
       h('button', {
         type: 'button', id: 'btn-layout-default', disabled: layoutIsDefault(), onclick: layoutToDefault,
-        title: t('Balanced preset, no nesting, no label or colour by a property; moved elements stay (Manual: Reset)'),
+        title: t('Balanced preset, no nesting, relationship names shown, no label or colour by a property; moved elements stay (Manual: Reset)'),
       }, t('Set to default'))),
     h('div', { class: 'filter-row hint' },
       t('Applies to generated diagrams (neighbourhood, basket, type, folder, impact); stored views keep their own layout and nesting.') + ' '
-      + t('Labels and colours by a property apply to stored views too.') + ' '
+      + t('Labels and colours by a property apply to stored views too, as do relationship names.') + ' '
       + t('Moved positions are remembered per diagram in this browser and included in Copy link.') + ' '
       + t('Tidy re-runs the automatic layout, keeping the rows/columns and order of your arrangement.')));
 }

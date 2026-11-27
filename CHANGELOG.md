@@ -3,6 +3,20 @@
 Version numbers start at 2.7.0 (2026-10-23); before, changes were listed
 by date, with the version of the ArchiMate API they need.
 
+## 2.32.0 (2026-11-27)
+
+* **The model list by name:** the models in the drop-down at the top are
+  sorted by name (without regard to case; numbers in names in their order),
+  no longer by id. Copies with the same name keep their id after the name.
+* **Relationship names can be hidden:** *Layout → Labels → Relationship
+  names* turns the names drawn next to the lines on or off, in every
+  diagram at once (generated diagrams and stored views), without a new
+  layout. *Download .svg/.png* and *Copy image* follow it. The choice is
+  remembered in this browser; *Set to default* shows them again.
+* **Install package:** links in its Markdown files to files it leaves out
+  (the working documents, the API's files) now point to the same file on
+  GitHub.
+
 ## 2.31.0 (2026-11-20)
 
 Renaming and deleting views of the model's source needs the ArchiMate API
