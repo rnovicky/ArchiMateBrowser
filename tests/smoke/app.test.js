@@ -3451,4 +3451,76 @@ describe('smoke', () => {
     for (const v of views) await fetch(`/api/v2/models/${M}/views/${v.id}`, { method: 'DELETE', headers: ANY_VERSION });
     assert.deepEqual(app.errors, []);
   });
+
+  // 2.34.0 (API 3.25.0): a recipe edited as a script; a recipe made by a script opens its kept script
+  const scriptButton = (app, label) => app.$$('#details .actions button').find(b => b.firstChild.textContent === label);
+  const scriptDialogParts = dialog => ({
+    editor: dialog.querySelector('#script-text'),
+    button: what => dialog.querySelector(`[data-script=${what}]`),
+    summary: () => dialog.querySelector('.script-summary')?.textContent || '',
+    type(text) { this.editor.value = text; this.editor.dispatchEvent(new dialog.ownerDocument.defaultView.Event('input', { bubbles: true })); },
+  });
+
+  test('2.34.0: Edit as script…: a recipe as script lines, checked and saved back into it', async () => {
+    const created = await (await viewsApi('/views', 'POST', { name: 'Edit me', recipe: `d=nb~1~${E.erp}&n=0` })).json();
+    try {
+      const app = await openApp(`#model=${M}&view=${created.id}`);
+      const edit = await waitFor(() => scriptButton(app, 'Edit as script…'), { what: 'Edit as script…' });
+      edit.click();
+      const dialog = await waitFor(() => app.$('#script-dialog[open] #script-text') && app.$('#script-dialog'), { what: 'the dialog' });
+      const d = scriptDialogParts(dialog);
+      assert.equal(d.editor.value, 'diagram "Edit me"\n  neighbourhood of "ERP" depth 1\n');
+      d.button('check').click();
+      await waitFor(() => /nothing to save/.test(d.summary()), { what: 'the same recipe' });
+      assert.ok(d.button('save').disabled, 'nothing to save');
+      d.type('diagram "Edit me"\n  neighbourhood of "ERP" depth 2\n  layout readable\n');
+      assert.ok(d.button('save').disabled, 'checked first');
+      d.button('check').click();
+      await waitFor(() => /Saving changes: what it draws\./.test(d.summary()), { what: 'the change' });
+      d.button('save').click();
+      await waitFor(() => /Saved\./.test(d.summary()), { what: 'saved' });
+      assert.match(app.$('#status').textContent, /Recipe “Edit me” saved\./);
+      const view = await (await viewsApi(`/views/${created.id}`)).json();
+      assert.match(view.recipe, /^d=nb~2~[^&]+&lo=s1\.6_t20_la_pa_ro_h1&n=0$/);
+      assert.deepEqual(app.errors, []);
+    } finally {
+      await viewsApi(`/views/${created.id}`, 'DELETE');
+    }
+  });
+
+  test('2.34.0: a recipe made by a script: Edit as script… opens the kept script at its diagram, or detaches it', async () => {
+    const script = 'script "Smoke edit"\n\ndiagram "Smoke made"\n  impact of "ERP" depth 2\n';
+    const ran = await (await fetch(`/api/v2/models/${M}/recipe-scripts/run`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ script }) })).json();
+    const viewId = ran.recipes[0].viewId;
+    try {
+      const app = await openApp(`#model=${M}&view=${viewId}`);
+      (await waitFor(() => scriptButton(app, 'Edit as script…'), { what: 'Edit as script…' })).click();
+      let dialog = await waitFor(() => app.$('#script-dialog.script-choice[open]'), { what: 'the choice' });
+      assert.match(dialog.textContent, /made by the recipe script “Smoke edit”/);
+      [...dialog.querySelectorAll('button')].find(b => b.textContent === 'Open the script').click();
+      dialog = await waitFor(() => app.$('#script-dialog[open]:not(.script-choice) #script-text') && app.$('#script-dialog'), { what: 'the script' });
+      const d = scriptDialogParts(dialog);
+      assert.equal(d.editor.value, script, 'the kept text');
+      assert.equal(d.editor.value.slice(d.editor.selectionStart, d.editor.selectionEnd), 'diagram "Smoke made"', 'at its diagram');
+      await waitFor(() => [...dialog.querySelectorAll('.script-kept option')].some(o => o.textContent === 'Smoke edit (1 recipes)'), { what: 'the kept scripts' });
+      [...dialog.querySelectorAll('button')].find(b => b.textContent === 'Close').click();
+      // detached: edited alone, and no longer the script's
+      (await waitFor(() => scriptButton(app, 'Edit as script…'), { what: 'Edit as script… again' })).click();
+      dialog = await waitFor(() => app.$('#script-dialog.script-choice[open]'), { what: 'the choice again' });
+      [...dialog.querySelectorAll('button')].find(b => b.textContent === 'Detach and edit…').click();
+      dialog = await waitFor(() => app.$('#script-dialog[open] #script-text') && app.$('#script-dialog'), { what: 'the recipe' });
+      const r = scriptDialogParts(dialog);
+      assert.match(dialog.querySelector('.script-note').textContent, /detaches this recipe from the recipe script “Smoke edit”/);
+      r.button('check').click();
+      await waitFor(() => /saving detaches it from its script/.test(r.summary()), { what: 'only the detaching' });
+      r.button('save').click();
+      await waitFor(() => /Saved\./.test(r.summary()), { what: 'saved' });
+      assert.equal((await (await viewsApi(`/views/${viewId}`)).json()).script, null);
+      assert.deepEqual(app.errors, []);
+    } finally {
+      await viewsApi(`/views/${viewId}`, 'DELETE');
+      if (ran.storedScriptId) await viewsApi(`/recipe-scripts/${ran.storedScriptId}`, 'DELETE');
+    }
+  });
 });

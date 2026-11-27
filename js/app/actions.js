@@ -38,7 +38,7 @@ import { openDeleteModel, openImport, refreshModels, renameModel, selectType } f
 import { openPalette } from './palette.js';
 import { canWalkTypes, renderDef, setFilter, setPropertyOptions, showNeighbourhood, showPaths } from './panels.js';
 import { askNeighbourhoodWalk } from './walkdialog.js';
-import { canScripts, openRecipeScript } from './scriptdialog.js';
+import { canEditAsScript, canScripts, openRecipeAsScript, openRecipeScript } from './scriptdialog.js';
 import { modelRef, revealInTree, select } from './routing.js';
 import { showPanel } from './shell.js';
 import { $, state } from './state.js';
@@ -221,6 +221,9 @@ const VIEW = [
   // BR-25: a created view is edited, renamed and deleted; a source view never
   { id: 'edit', group: 'diagram', when: c => canWrite() && isCreated(c.item) && !isRecipe(c.item), button: true, label: t('Edit view'),
     title: t('Move, add and hide its elements in a diagram, then Save'), run: c => editView(c.id) },
+  // 2.34.0 (API 3.25.0): a recipe as the script of one diagram; one made by a recipe script opens that script
+  { id: 'edit-as-script', group: 'diagram', when: c => canEditAsScript(c.item), button: true, label: t('Edit as script…'),
+    title: t('What the recipe draws, its filters and options as script lines: change them, check and save'), run: c => openRecipeAsScript(c.id) },
   // 2.31.0: also a view of the model's source, on a model mastered here (API 3.23.0)
   { id: 'rename', group: 'manage', when: c => canManageView(c.item), button: true, label: t('Rename…'), run: c => renameView(c.id) },
   { id: 'delete', group: 'manage', when: c => canManageView(c.item), button: true, label: t('Delete…'), run: c => deleteView(c.id) },

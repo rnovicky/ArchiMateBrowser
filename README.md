@@ -330,7 +330,7 @@ delete) are not shown.
   | --- | --- |
   | Element | Details · Neighbourhood diagram · Neighbourhood with relationship types… · Explore · Add to diagram (or *✓ In diagram*) · Expand in diagram (+N) · Hide from diagram · Collapse · Impact analysis · Dependencies · Add to / Remove from basket · Show in tree (by type) · Show in folders · Copy name |
   | Relationship | Details · Source: … · Target: … · Diagram of both ends · Neighbourhood diagram · Add both ends to diagram · Add both ends to basket · Show in tree · Copy name |
-  | View | Open view (and details) · Automatic layout of its elements · Editable copy (keeps the arrangement) · Add to diagram (its elements, in their arrangement; with a generated diagram open) · Add its elements to basket · Show in tree · Copy name. The same actions as in the opened view's menu |
+  | View | Open view (and details) · Automatic layout of its elements · Editable copy (keeps the arrangement) · Add to diagram (its elements, in their arrangement; with a generated diagram open) · Add its elements to basket · Edit as script… (a recipe, 2.34.0) · Show in tree · Copy name. The same actions as in the opened view's menu |
   | Folder | Details · Diagram of folder · Add to diagram (+N) · Add elements to basket · Copy name |
   | Element type | Details · Diagram of these elements · Add to diagram (+N) · Add all to basket · Select them |
   | Layer (*Business*, …) | Details · Diagram of the layer · Add to diagram (+N) · Add all to basket · Select them · Diagram filter: only this layer |
@@ -1344,6 +1344,35 @@ The language is described in the API's
   them twice, so a script can be kept and run whenever the model changes.
 * Checking needs only reading; *Create / update* needs a key that may write.
   An offline copy does not offer scripts.
+* **Kept scripts** (2.34.0, API 3.25.0): every run keeps the script with the
+  model. *Open a kept script…* above the editor lists them, so a script
+  written elsewhere, by someone else or with Claude, is opened, changed and
+  run again.
+
+### Editing a recipe as a script (2.34.0)
+
+**Edit as script…** on a recipe (its menu, and a button in its details; API
+3.25.0) shows what the recipe draws, its filters and options as the lines of
+a recipe script: one `diagram` block, e.g.
+
+```
+diagram "ERP landscape"
+  neighbourhood of "ERP" depth 2
+  hide Junction
+  layout readable
+```
+
+* *Check* says what saving would change (the name, the documentation, what it
+  draws); *Save* writes it into the recipe, which keeps its place and links;
+  *Show* draws the checked recipe in a new tab.
+* What a script cannot say is listed above the editor and left out when
+  saving: positions moved by hand, notes, the Layout panel's layering and
+  placement. An explore diagram cannot be written as a script; the dialog
+  says so. A documentation of several lines stays out and is kept.
+* **A recipe made by a recipe script** is changed in its script, since the
+  next run would set it back: *Open the script* opens the kept script with
+  that diagram's line selected; *Detach and edit…* edits the recipe alone and
+  takes it from the script.
 
 ### Images for the MCP server: render mode (2.29.0)
 

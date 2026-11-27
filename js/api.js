@@ -383,6 +383,14 @@ export const api = {
     check: (modelId, script, o) => send('POST', `${m(modelId)}/recipe-scripts/check`, { script }, o),
     run: (modelId, script, { deleteObsolete = false, ...o } = {}) =>
       send('POST', `${m(modelId)}/recipe-scripts/run`, { script, deleteObsolete }, o),
+    // 2.34.0 (API 3.25.0): the scripts kept with the model (every run keeps its text), and a recipe as a script
+    list: (modelId, o) => request(`${m(modelId)}/recipe-scripts`, undefined, o),
+    get: (modelId, scriptId, o) => request(`${m(modelId)}/recipe-scripts/${scriptId}`, undefined, o),
+    remove: (modelId, scriptId, o) => send('DELETE', `${m(modelId)}/recipe-scripts/${scriptId}`, undefined, o),
+    ofView: (modelId, viewId, o) => request(`${m(modelId)}/views/${viewId}/recipe-script`, undefined, o),
+    checkView: (modelId, viewId, script, { keepDocumentation = false, ...o } = {}) =>
+      send('POST', `${m(modelId)}/views/${viewId}/recipe-script/check`, { script, keepDocumentation }, o),
+    saveView: (modelId, viewId, body, o) => send('PUT', `${m(modelId)}/views/${viewId}/recipe-script`, body, o),
   },
   /** The relationship types ArchiMate allows from one concept to another (API 3.7.0): { allowed: [...] }. */
   allowedRelationships: (source, target, o) => request('/metamodel/relationships', { source, target }, o),

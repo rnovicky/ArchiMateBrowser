@@ -3,6 +3,32 @@
 Version numbers start at 2.7.0 (2026-10-23); before, changes were listed
 by date, with the version of the ArchiMate API they need.
 
+## 2.34.0 (2026-11-27)
+
+Needs the ArchiMate API 3.25.0 for what is new here; the rest works with older ones.
+
+* **Edit as script…** on a recipe (its menu, and a button in its details)
+  shows what the recipe draws, its filters and options as the lines of a
+  recipe script, e.g. `neighbourhood of "ERP" depth 2` and `layout readable`.
+  Change them, *Check* (it says what saving would change: the name, the
+  documentation, what it draws) and *Save*: the recipe keeps its place in the
+  tree and its links. *Show* draws the checked recipe in a new tab.
+  * What a script cannot say is listed above the editor and left out when
+    saving: positions moved by hand, notes, the layering and placement of the
+    Layout panel. An explore diagram cannot be written as a script at all;
+    the dialog says so.
+  * A documentation of several lines stays out of the script and is kept.
+* **A recipe made by a recipe script** is changed in its script, since the
+  next run would set it back: *Edit as script…* offers *Open the script*,
+  which opens the kept script with the line of that diagram selected, or
+  *Detach and edit…*, which edits the recipe alone and takes it from the
+  script.
+* **Kept scripts:** every run of a recipe script keeps its text with the
+  model (API 3.25.0). The recipe script dialog lists them (*Open a kept
+  script…*), so a script written elsewhere, by someone else or with Claude
+  can be opened, changed and run again. The draft in this browser stays as
+  before.
+
 ## 2.33.0 (2026-11-27)
 
 Needs the ArchiMate API 3.24.0 for the new diagram and recipe scripts; the rest works with older ones.
