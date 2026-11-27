@@ -590,7 +590,7 @@ describe('smoke', () => {
     dialog.querySelectorAll('#palette-list li')[rows().indexOf('Billing Module')].click();
     await waitFor(() => rows().includes('Neighbourhood diagram'), { what: 'its actions again' });
     type('neighbour');
-    assert.deepEqual(rows(), ['Neighbourhood diagram']);
+    assert.deepEqual(rows(), ['Neighbourhood diagram', 'Neighbourhood with relationship types…']); // 2.33.0: the second
     key(input(), 'Enter');
     assert.ok(!dialog.open, 'closed when an action runs');
     await waitFor(() => app.diagramNodes().length > 1 && /Billing Module/.test(app.$('#diagram-title')?.textContent || ''), { what: 'the diagram', timeout: 20000 });
@@ -3356,6 +3356,48 @@ describe('smoke', () => {
     app.$('#btn-layout-default').click();
     await waitFor(() => !app.$('#tab-layout svg.view-svg').hasAttribute('data-hide-rel-labels'), { what: 'shown again' });
     assert.equal(app.$('#layout-panel #opt-rel-labels').checked, true);
+    assert.deepEqual(app.errors, []);
+  });
+
+  // 2.33.0 (API 3.24.0): around ERP (fixture): Composition → Billing Module, Flow → junction → Billing Module and
+  // Payment Gateway, Server —Serving→ ERP, Finance —Association→ ERP
+  test('2.33.0: a neighbourhood with relationship types per direction, from a link', async () => {
+    const app = await openApp(`#model=${M}&d=nb~1~${E.erp}~b~~Composition`);
+    await waitFor(() => app.diagramNodes().length === 4, { what: 'every incoming, outgoing only Composition', timeout: 20000 });
+    assert.equal(app.$('#diagram-title').textContent, 'Neighbourhood of ERP (depth 1) — incoming: all types · outgoing: Composition');
+    assert.match(app.win.location.hash, /d=nb~1~[^&]+~b~~Composition(&|$)/, 'the link keeps the types');
+    // one direction only: the types of the other are not in the link
+    app.win.location.hash = `#model=${M}&d=nb~1~${E.erp}~o~~Flow`;
+    await waitFor(() => app.diagramNodes().length === 4 && /outgoing: Flow$/.test(app.$('#diagram-title').textContent),
+      { what: 'outgoing Flow only: through the junction', timeout: 20000 });
+    assert.ok(!/incoming/.test(app.$('#diagram-title').textContent));
+    assert.deepEqual(app.errors, []);
+  });
+
+  test('2.33.0: Neighbourhood with relationship types… asks for the types of each direction', async () => {
+    const app = await openApp(`#model=${M}&d=nb~1~${E.erp}`);
+    await waitFor(() => app.diagramNodes().length === 6, { what: 'the neighbourhood', timeout: 20000 });
+    app.ctx(app.$(`#tab-layout .v-node[data-element="${E.erp}"]`));
+    await waitFor(() => app.menu()?.includes('Neighbourhood with relationship types…'), { what: 'the element menu' });
+    app.clickMenu('Neighbourhood with relationship types…');
+    const dialog = await waitFor(() => app.$('#walk-dialog[open]'), { what: 'the dialog' });
+    const side = key => dialog.querySelector(`[data-walk=${key}]`);
+    const radio = (key, v) => side(key).querySelector(`[name=walk-${key}-all][value=${v}]`);
+    const tick = (key, types) => side(key).querySelectorAll('[data-walk-type]').forEach(i => { i.checked = types.includes(i.value); });
+    // nothing ticked: refused with a message
+    radio('in', 'some').click(); tick('in', []);
+    dialog.querySelector('button[value=ok]').click();
+    assert.ok(dialog.open, 'still open');
+    assert.match(dialog.querySelector('.error').textContent, /at least one relationship type/);
+    // incoming only Serving, outgoing only Flow
+    tick('in', ['Serving']);
+    radio('out', 'some').click(); tick('out', ['Flow']);
+    dialog.querySelector('button[value=ok]').click();
+    await waitFor(() => !app.$('#walk-dialog'), { what: 'closed' });
+    await waitFor(() => app.diagramNodes().length === 5 && /incoming: Serving · outgoing: Flow$/.test(app.$('#diagram-title').textContent),
+      { what: 'ERP, Server, the junction, Billing Module, Payment Gateway', timeout: 20000 });
+    assert.match(app.win.location.hash, /~b~Serving~Flow(&|$)/);
+    assert.deepEqual(JSON.parse(app.win.localStorage.getItem(SETTINGS)).neighbourWalk.out.types, ['Flow'], 'remembered');
     assert.deepEqual(app.errors, []);
   });
 });

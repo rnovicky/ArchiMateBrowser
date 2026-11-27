@@ -21,7 +21,7 @@ import {
   openViewNodeMenu, openViewOtherNodeMenu, plainSelect, popupMenu, refreshMarks, withContextMenu,
 } from './menus.js';
 import {
-  decoInfo, drillToView, encodeDef, fadedInView, impactStarts, namesOf, renderDef, renderLayoutPanel,
+  decoInfo, describeWalk, drillToView, encodeDef, fadedInView, impactStarts, namesOf, renderDef, renderLayoutPanel,
   renderTrail, setDiagramInfo, updateDefaultButtons, viewElements,
 } from './panels.js';
 import { highlightInDiagrams, keyInFor, keyOut, linkDef, modelKey, writeHash } from './routing.js';
@@ -1109,9 +1109,11 @@ export function describeDef(def) {
         : count(def.ids.length);
       return `${head} (${size})`;
     }
-    case 'neighbourhood': return def.depth
-      ? t('Neighbourhood of {what} (depth {depth})', { what: def.label || namesOf(def.seeds), depth: def.depth })
-      : t('Neighbourhood of {what}', { what: def.label || namesOf(def.seeds) });
+    case 'neighbourhood': {
+      if (!def.depth) return t('Neighbourhood of {what}', { what: def.label || namesOf(def.seeds) });
+      const walk = describeWalk(def);
+      return t('Neighbourhood of {what} (depth {depth})', { what: def.label || namesOf(def.seeds), depth: def.depth }) + (walk ? ` — ${walk}` : '');
+    }
     case 'elements': return def.label || t('Selection: {names}', { names: namesOf(def.ids) });
     case 'type': return t('All {type} elements', { type: prettyType(def.type) });
     case 'layer': return t('{layer} layer', { layer: LAYERS.find(l => l.key === def.key)?.label || def.key });

@@ -36,11 +36,12 @@ import {
 } from './menus.js';
 import { openDeleteModel, openImport, refreshModels, renameModel, selectType } from './models.js';
 import { openPalette } from './palette.js';
-import { renderDef, setFilter, setPropertyOptions, showNeighbourhood, showPaths } from './panels.js';
+import { canWalkTypes, renderDef, setFilter, setPropertyOptions, showNeighbourhood, showPaths } from './panels.js';
+import { askNeighbourhoodWalk } from './walkdialog.js';
 import { modelRef, revealInTree, select } from './routing.js';
 import { showPanel } from './shell.js';
 import { $, state } from './state.js';
-import { duplicateDoc, newEmptyTab } from './tabs.js';
+import { consumeNewTab, duplicateDoc, newEmptyTab } from './tabs.js';
 import { canEdit, editing, setEditMode } from './editing.js';
 import { connectFrom, createElementAt, newElementHere } from './toolbox.js';
 import { deleteElement, deleteFolder, deleteRelationship, fileItem, moveFolder, newFolder, renameFolder } from './manage.js';
@@ -113,6 +114,10 @@ const ELEMENT = [
   { id: 'details', group: 'open', label: t('Details'), run: c => select('element', c.id, c.selectOpts) },
   { id: 'neighbourhood', group: 'diagram', newTab: true, button: { primary: true }, label: t('Neighbourhood diagram'),
     run: c => showNeighbourhood([c.id], c.item.name) },
+  // 2.33.0 (API 3.24.0): the relationship types followed in each direction
+  { id: 'neighbourhood-types', group: 'diagram', newTab: true, when: () => canWalkTypes(), label: t('Neighbourhood with relationship types…'),
+    title: t('Choose the depth and which incoming and outgoing relationship types to follow, e.g. every incoming one, outgoing only Serving and Realization'),
+    run: c => askNeighbourhoodWalk([c.id], c.item.name || prettyType(c.item.type), { newTab: consumeNewTab() }) },
   { id: 'explore', group: 'diagram', newTab: true, button: true, label: t('Explore'),
     title: t('Start a diagram with this element and grow it step by step: click +N or double-click elements to show their related elements'),
     run: c => exploreFrom([c.id]) },

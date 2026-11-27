@@ -82,14 +82,25 @@ function kept(store, res) {
 // ---------------------------------------------------------------- HLP-1: neighbourhood
 
 /**
+ * API 3.24.0: the relationship types a neighbourhood follows against (inTypes) / along (outTypes) their
+ * direction, at every step; null for every type. Only those of a direction walked are sent.
+ */
+export function walkTypes(direction, inTypes, outTypes) {
+  const out = {};
+  if (inTypes && direction !== 'out') out.incomingTypes = [...inTypes];
+  if (outTypes && direction !== 'in') out.outgoingTypes = [...outTypes];
+  return out;
+}
+
+/**
  * The elements within `depth` hops of `seeds` and the relationships to draw between them.
  * @returns {{ ids: Set<number>, relationships: object[], nesting: object|null,
  *             filtered: { elements, relationships }, truncated: boolean }}
  *   ids in the API's order (by distance, then id); `filtered`: what the filters left out.
  */
-export async function neighbourhood(store, { seeds, depth = 1, direction = 'both', filter = null, props = null, nesting = true }, { signal } = {}) {
+export async function neighbourhood(store, { seeds, depth = 1, direction = 'both', inTypes = null, outTypes = null, filter = null, props = null, nesting = true }, { signal } = {}) {
   const request = {
-    seeds: [...seeds], depth, direction, ...filterParams(filter, props), ...COMPLETE,
+    seeds: [...seeds], depth, direction, ...walkTypes(direction, inTypes, outTypes), ...filterParams(filter, props), ...COMPLETE,
     include: ['filtered', 'degree'], ...(nesting && nestingParam() ? { nesting: nestingParam() } : {}),
   };
   const res = await api.graph.neighbourhood(store.id, request, { signal });

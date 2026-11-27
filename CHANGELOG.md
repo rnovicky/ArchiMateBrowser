@@ -3,6 +3,25 @@
 Version numbers start at 2.7.0 (2026-10-23); before, changes were listed
 by date, with the version of the ArchiMate API they need.
 
+## 2.33.0 (2026-11-27)
+
+Needs the ArchiMate API 3.24.0 for the new diagram; the rest works with older ones.
+
+* **Neighbourhood with relationship types:** a new entry in an element's menu
+  (and in the command palette) asks for the depth and, for incoming and for
+  outgoing relationships, either every type or the ones ticked. For example,
+  *every incoming relationship, outgoing only Serving and Realization*. The
+  types are followed at every step. The diagram shows every relationship
+  among the elements reached, and its title names the types (*Neighbourhood of
+  ERP (depth 1) — incoming: all types · outgoing: Serving, Realization*). The
+  last choice is remembered in this browser.
+* **The link keeps the types:** `d=nb~<depth>~<elements>~<b|o|i>~<incoming
+  types>~<outgoing types>`, an empty list meaning every type, e.g.
+  `nb~1~id-erp~b~~Serving.Realization`. Older links stay as they were. A link
+  with types opened against an API older than 3.24.0 says so instead of
+  drawing something else.
+* **Offline copies** follow the types too.
+
 ## 2.32.0 (2026-11-27)
 
 * **The model list by name:** the models in the drop-down at the top are

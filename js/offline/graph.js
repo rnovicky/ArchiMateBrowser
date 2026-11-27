@@ -146,8 +146,12 @@ function requireElements(reader, ids, what = 'Elements') {
 // ---------------------------------------------------------------------------------------- rules 1 to 5
 
 /** Neighbourhood: { element id: distance } in the order reached (a Map), and whether `limit` cut it. */
-function neighbourhood(reader, seeds, depth, { direction = 'both', filters = NO_FILTER, relationshipOk = null, limit = null } = {}) {
+function neighbourhood(reader, seeds, depth, { direction = 'both', filters = NO_FILTER, relationshipOk = null, limit = null, incomingTypes = null, outgoingTypes = null } = {}) {
   const relOk = relationshipOk || filters.relationshipOk;
+  // API 3.24.0: the relationship types followed against / along their direction, at every step (null: every type)
+  const inTypes = incomingTypes == null ? null : new Set(incomingTypes), outTypes = outgoingTypes == null ? null : new Set(outgoingTypes);
+  const outOk = outTypes ? r => outTypes.has(r.type) && relOk(r) : relOk;
+  const inOk = inTypes ? r => inTypes.has(r.type) && relOk(r) : relOk;
   const distance = new Map(seeds.map(s => [s, 0]));
   let truncated = false;
   let frontier = [...distance.keys()];
@@ -158,8 +162,8 @@ function neighbourhood(reader, seeds, depth, { direction = 'both', filters = NO_
     while (queue.length && !truncated) {
       const current = queue.shift();
       const reached = [];
-      if (direction !== 'in') for (const r of reader.outgoing(current)) if (relOk(r)) reached.push(...reader.ends(r.targetElementId, r.targetRelationshipId));
-      if (direction !== 'out') for (const r of reader.incoming(current)) if (relOk(r)) reached.push(...reader.ends(r.sourceElementId, r.sourceRelationshipId));
+      if (direction !== 'in') for (const r of reader.outgoing(current)) if (outOk(r)) reached.push(...reader.ends(r.targetElementId, r.targetRelationshipId));
+      if (direction !== 'out') for (const r of reader.incoming(current)) if (inOk(r)) reached.push(...reader.ends(r.sourceElementId, r.sourceRelationshipId));
       for (const other of reached) {
         if (distance.has(other) || !reader.accepts(other, filters)) continue;
         if (limit != null && distance.size >= limit) { truncated = true; break; }
@@ -394,7 +398,10 @@ export function neighbourhoodAnswer(m, body) {
   const reader = readerFor(m, b);
   const seeds = requireElements(reader, b.seeds, 'Seeds');
   const filters = filtersFor(b, reader);
-  const [distance, truncated] = neighbourhood(reader, seeds, b.depth, { direction: b.direction, filters, limit: MAX_GRAPH_ELEMENTS });
+  if (b.incomingTypes != null && b.direction === 'out') throw new HttpError(422, "incomingTypes needs direction 'both' or 'in'", 'VALIDATION_ERROR');
+  if (b.outgoingTypes != null && b.direction === 'in') throw new HttpError(422, "outgoingTypes needs direction 'both' or 'out'", 'VALIDATION_ERROR');
+  const walk = { incomingTypes: b.incomingTypes ?? null, outgoingTypes: b.outgoingTypes ?? null };
+  const [distance, truncated] = neighbourhood(reader, seeds, b.depth, { direction: b.direction, filters, limit: MAX_GRAPH_ELEMENTS, ...walk });
   const ordered = [...distance.keys()].sort(byKey(i => [distance.get(i), i]));
   const rels = relationshipsOf(reader, [...distance.keys()], filters.relationshipOk);
   const result = {
@@ -405,7 +412,7 @@ export function neighbourhoodAnswer(m, body) {
   };
   if (b.nesting != null) result.nesting = nestingAnswer(reader, [...distance.keys()], rels, b.nesting);
   if (b.include.includes('filtered')) {
-    const [unfiltered] = neighbourhood(reader, seeds, b.depth, { direction: b.direction, limit: MAX_GRAPH_ELEMENTS });
+    const [unfiltered] = neighbourhood(reader, seeds, b.depth, { direction: b.direction, limit: MAX_GRAPH_ELEMENTS, ...walk });
     result.filtered = filtered(reader, unfiltered.size, [...distance.keys()], rels);
   }
   return result;

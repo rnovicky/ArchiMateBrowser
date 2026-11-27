@@ -18,6 +18,7 @@ export const DEFAULTS = {
   neighbourDirection: 'both', // both | out | in
   propertyOptions: '', // PropertyOptions.encode() of the last used property display options
   impact: null, // { direction, depth, types } of the impact-analysis panel (BR-12)
+  neighbourWalk: null, // 2.33.0: the last choice of 'Neighbourhood with relationship types…' { depth, in, out }
   diagramTab: 'layout', // layout (native Diagram, default) | plantuml | source
   nestGenerated: false, // LV-5: draw Composition/Aggregation as nested boxes in generated diagrams
   nestAssignment: false, // LV-5: … and Assignment too

@@ -1,7 +1,7 @@
 // ArchiMate Browser: The Options / Filters / Layout panels, diagram definitions, filters, property options, view drill-down.
 // Part of js/app.js until 2026-10-24 (EN-6); app.js wires it to the page.
 
-import { isAbort, isPartialCopy } from '../api.js';
+import { isAbort, isOffline, isPartialCopy, olderThan } from '../api.js';
 import { settings, saveSettings, DEFAULTS } from '../config.js';
 import { t } from '../i18n.js';
 import { LAYERS, RELATIONSHIP_TYPES, prettyType } from '../archimate.js';
@@ -170,6 +170,9 @@ export function renderLayoutPanel() {
 // depth change) and shared in the URL (`d=` hash parameter):
 //   { kind: 'elements', ids, label?, notes? }  explicit set, e.g. the basket   -> el~1.2.3[~<view>.<note>…]
 //   { kind: 'neighbourhood', seeds, depth, dir, label? }      dir: both|out|in -> nb~<depth>~1.2.3[~o|~i]
+//     2.33.0 (API 3.24.0): inTypes?, outTypes?: the relationship types followed against / along their
+//     direction, at every step (absent: every type)  -> nb~<depth>~1.2.3~<b|o|i>~<in types>~<out types>,
+//     a list empty for every type, e.g. nb~1~459~b~~Serving.Realization
 //   { kind: 'type', type }                     all elements of one type        -> ty~BusinessActor
 //   { kind: 'view', id, trail? }               stored view; trail = views drilled through -> v~4[~58.2]
 //   { kind: 'folder', id }                     elements filed in a folder (recursive)     -> fo~12
@@ -185,6 +188,32 @@ export function renderLayoutPanel() {
 
 export const DIR_CODES = { out: 'o', in: 'i' };
 
+/**
+ * 2.33.0: the relationship types a neighbourhood follows against (inTypes) / along (outTypes) their direction,
+ * where they matter: only for a direction walked, none for "every type"; an empty list leaves that direction out.
+ * @returns {{ dir: string, inTypes: string[]|null, outTypes: string[]|null }}
+ */
+export function walkOf(def) {
+  let dir = def.dir || 'both';
+  const known = list => (list ? list.filter(x => RELATIONSHIP_TYPES.includes(x)) : null);
+  let inTypes = dir === 'out' ? null : known(def.inTypes), outTypes = dir === 'in' ? null : known(def.outTypes);
+  if (inTypes && !inTypes.length && dir === 'both') { dir = 'out'; inTypes = null; }
+  if (outTypes && !outTypes.length && dir === 'both') { dir = 'in'; outTypes = null; }
+  const every = list => list && RELATIONSHIP_TYPES.every(x => list.includes(x));
+  return { dir, inTypes: every(inTypes) ? null : inTypes, outTypes: every(outTypes) ? null : outTypes };
+}
+
+/** 2.33.0: "incoming: all types · outgoing: Serving, Realization", or '' when every type is followed. */
+export function describeWalk(def) {
+  const w = walkOf(def);
+  if (!w.inTypes && !w.outTypes) return '';
+  const list = types => (types ? (types.length ? types.join(', ') : t('none')) : t('all types'));
+  const parts = [];
+  if (w.dir !== 'out') parts.push(t('incoming: {types}', { types: list(w.inTypes) }));
+  if (w.dir !== 'in') parts.push(t('outgoing: {types}', { types: list(w.outTypes) }));
+  return parts.join(' · ');
+}
+
 /** Start elements of an impact diagram. */
 export function impactStarts(def) {
   return def.ids?.length ? def.ids : [def.id];
@@ -198,7 +227,12 @@ export function encodeDef(def, ref = (kind, id) => String(id)) {
   const list = (kind, ids) => ids.map(id => ref(kind, id)).join('.');
   switch (def.kind) {
     case 'elements': return `el~${list('element', def.ids)}${def.notes?.refs?.length ? `~${ref('view', def.notes.view)}.${def.notes.refs.join('.')}` : ''}`;
-    case 'neighbourhood': return `nb~${def.depth}~${list('element', def.seeds)}${DIR_CODES[def.dir] ? '~' + DIR_CODES[def.dir] : ''}`;
+    case 'neighbourhood': {
+      const w = walkOf(def);
+      const head = `nb~${def.depth}~${list('element', def.seeds)}`;
+      if (w.inTypes || w.outTypes) return `${head}~${DIR_CODES[w.dir] || 'b'}~${(w.inTypes || []).join('.')}~${(w.outTypes || []).join('.')}`;
+      return `${head}${DIR_CODES[w.dir] ? '~' + DIR_CODES[w.dir] : ''}`;
+    }
     case 'type': return `ty~${def.type}`;
     case 'layer': return `la~${def.key}`;
     case 'whole': return 'wm';
@@ -225,7 +259,7 @@ export function encodeDef(def, ref = (kind, id) => String(id)) {
  * to leave it out (default: ids only; resolveHash turns XMI identifiers into ids first).
  */
 export function decodeDef(str, idOf = token => (isId(token) ? Number(token) : null)) {
-  const [kind, a, b, c, d] = String(str).split('~');
+  const [kind, a, b, c, d, e] = String(str).split('~');
   const ids = (s, k = 'element') => (s || '').split('.').filter(Boolean).map(x => idOf(x, k)).filter(Number.isInteger);
   const one = (s, k) => (s ? idOf(s, k) : null);
   const notesIn = part => {
@@ -236,7 +270,11 @@ export function decodeDef(str, idOf = token => (isId(token) ? Number(token) : nu
   if (kind === 'el') return { kind: 'elements', ids: ids(a), ...notesIn(b) };
   if (kind === 'nb') {
     const dir = c === 'o' ? 'out' : c === 'i' ? 'in' : 'both';
-    return { kind: 'neighbourhood', depth: Math.max(0, Math.min(3, Number(a) || 0)), seeds: ids(b), dir };
+    const def = { kind: 'neighbourhood', depth: Math.max(0, Math.min(3, Number(a) || 0)), seeds: ids(b), dir };
+    // 2.33.0: the relationship types per direction; an empty list (or none known) for every type
+    const types = s => { const list = (s || '').split('.').filter(x => RELATIONSHIP_TYPES.includes(x)); return list.length ? list : null; };
+    const inTypes = dir !== 'out' ? types(d) : null, outTypes = dir !== 'in' ? types(e) : null;
+    return { ...def, ...(inTypes ? { inTypes } : {}), ...(outTypes ? { outTypes } : {}) };
   }
   if (kind === 'ty') return { kind: 'type', type: a };
   if (kind === 'la') return LAYERS.some(l => l.key === a) ? { kind: 'layer', key: a } : null;
@@ -317,16 +355,22 @@ export async function renderSet(def, { hints, pins = null, fresh }, signal, doc 
   // UP-3: the elements a definition names (a link, the basket) may not be cached yet
   await s.ensure({ elements: [...(def.seeds || []), ...(def.ids || [])] }, { signal });
   if (def.kind === 'neighbourhood') {
-    const dir = def.dir || 'both';
+    const { dir, inTypes, outTypes } = walkOf(def);
     seeds = new Set(def.seeds.filter(id => s.element(id)));
     if (!seeds.size) { status(t('Element #{id} not found.', { id: def.seeds[0] ?? '?' }), true); return; }
-    res = await graph.neighbourhood(s, { seeds, depth: def.depth, direction: dir, filter: f, props: po }, { signal });
+    if ((inTypes || outTypes) && !canWalkTypes()) {
+      status(t('A neighbourhood with relationship types per direction needs ArchiMate API 3.24.0 or later (this one is {version}).', { version: state.apiVersion || '?' }), true);
+      return;
+    }
+    res = await graph.neighbourhood(s, { seeds, depth: def.depth, direction: dir, inTypes, outTypes, filter: f, props: po }, { signal });
     const what = def.label || namesOf([...seeds]);
     const vars = { what, depth: def.depth };
     title = !def.depth ? what
       : dir === 'out' ? t('Outgoing neighbourhood of {what} (depth {depth})', vars)
       : dir === 'in' ? t('Incoming neighbourhood of {what} (depth {depth})', vars)
       : t('Neighbourhood of {what} (depth {depth})', vars);
+    const walk = def.depth ? describeWalk(def) : '';
+    if (walk) title += ` — ${walk}`;
   } else {
     // how the set is named
     const named = def.kind === 'type' ? { elementType: def.type }
@@ -553,6 +597,9 @@ export function setDiagramInfo(text, doc = state.doc) {
 }
 
 export function showElements(ids, label) { renderDef({ kind: 'elements', ids: [...ids], label }); }
+
+/** 2.33.0: whether the API follows relationship types per direction (3.24.0; the offline copy does). */
+export const canWalkTypes = () => isOffline() || (!!state.apiVersion && !olderThan(state.apiVersion, '3.24.0'));
 
 export function showNeighbourhood(ids, label, depth = Number(settings.neighbourDepth)) {
   renderDef({ kind: 'neighbourhood', seeds: [...ids], depth, dir: settings.neighbourDirection || 'both', label });

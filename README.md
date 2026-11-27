@@ -14,7 +14,7 @@ browser uses `/api/v2`), and **visualizing** selected parts of it — with **Pla
 stdlib macros**, or with a **native SVG renderer** that redraws stored views
 using their original coordinates.
 
-> Status: version 2.32.0. It browses and draws; with a key
+> Status: version 2.33.0. It browses and draws; with a key
 > that may write (role `editor`, API 3.15.0 and 3.16.0) it also edits:
 > created views ([Created views](#created-views-saving-a-diagram-as-a-view-2220)),
 > elements and relationships, the palette, deleting and filing
@@ -328,7 +328,7 @@ delete) are not shown.
 
   | Item | Actions |
   | --- | --- |
-  | Element | Details · Neighbourhood diagram · Explore · Add to diagram (or *✓ In diagram*) · Expand in diagram (+N) · Hide from diagram · Collapse · Impact analysis · Dependencies · Add to / Remove from basket · Show in tree (by type) · Show in folders · Copy name |
+  | Element | Details · Neighbourhood diagram · Neighbourhood with relationship types… · Explore · Add to diagram (or *✓ In diagram*) · Expand in diagram (+N) · Hide from diagram · Collapse · Impact analysis · Dependencies · Add to / Remove from basket · Show in tree (by type) · Show in folders · Copy name |
   | Relationship | Details · Source: … · Target: … · Diagram of both ends · Neighbourhood diagram · Add both ends to diagram · Add both ends to basket · Show in tree · Copy name |
   | View | Open view (and details) · Automatic layout of its elements · Editable copy (keeps the arrangement) · Add to diagram (its elements, in their arrangement; with a generated diagram open) · Add its elements to basket · Show in tree · Copy name. The same actions as in the opened view's menu |
   | Folder | Details · Diagram of folder · Add to diagram (+N) · Add elements to basket · Copy name |
@@ -445,6 +445,7 @@ Diagram sources:
 | --- | --- |
 | **Stored view** | Select a view in the tree (or *Show view*). |
 | **Element neighbourhood** | *Neighbourhood diagram* on an element/relationship; depth 1–3 (toolbar). |
+| **Neighbourhood with relationship types** (2.33.0, API 3.24.0) | *Neighbourhood with relationship types…* on an element: the depth, and for incoming and for outgoing relationships either all types or the ones ticked, e.g. every incoming relationship but outgoing only *Serving* and *Realization*. The types are followed at every step; the diagram shows every relationship among the elements reached. The title names the types, the link keeps them, and the toolbar's depth and *Follow* still apply. The last choice is remembered in this browser. |
 | **Element type** | Select a type node → *Diagram of these elements*. |
 | **Layer** | Right-click a layer (*Business*, …) → *Diagram of the layer*. |
 | **Relationship type** | Right-click a type under *Relationships* → *Diagram of the N relationships*: their ends, connected by that type only. |

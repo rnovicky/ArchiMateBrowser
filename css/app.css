@@ -547,6 +547,18 @@ dialog.palette { width: min(620px, calc(100vw - 32px)); padding: 0; margin-top: 
 table.keys th { width: 32%; white-space: nowrap; }
 kbd { display: inline-block; min-width: 1.4em; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--bg); font: 11px/18px Consolas, monospace; text-align: center; }
 dialog input[type=file] { padding: 6px; }
+/* 2.33.0: Neighbourhood with relationship types */
+#walk-dialog label.inline { display: inline-flex; align-items: center; gap: 6px; margin: 0 14px 8px 0; }
+#walk-dialog input[type=checkbox], #walk-dialog input[type=radio] { display: inline-block; width: auto; margin: 0; }
+#walk-dialog select { margin-left: 4px; }
+#walk-dialog small { display: block; margin-bottom: 10px; }
+#walk-dialog .walk-side { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 12px; padding: 6px 10px 10px; }
+#walk-dialog .walk-side legend { padding: 0 4px; font-weight: 600; }
+#walk-dialog .walk-side legend label.inline { margin: 0; }
+#walk-dialog .walk-types { display: flex; flex-wrap: wrap; gap: 4px; }
+#walk-dialog .walk-types .chip { display: inline-flex; margin: 0; }
+#walk-dialog .walk-types.inactive { opacity: .5; }
+#walk-dialog .error { color: var(--error); margin: 0 0 10px; }
 dialog .settings-group { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 14px; padding: 6px 10px 8px; }
 dialog .settings-group legend { font-weight: 600; padding: 0 4px; }
 dialog .settings-group .group-head { margin: 4px 0 6px; color: var(--muted); }

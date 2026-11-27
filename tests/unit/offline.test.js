@@ -233,6 +233,11 @@ for (const [label, id] of [['fixture', M], ['synthetic', SYN.model]]) {
         for (const direction of ['out', 'in']) cases.push(['POST', `${m}/graph/neighbourhood`, { body: { seeds: [e.id], depth: 2, direction, ...full } }]);
         for (const f of filterVariants(s)) cases.push(['POST', `${m}/graph/neighbourhood`, { body: { seeds: [e.id], depth: 2, ...f, ...full } }]);
         for (const n of nest) cases.push(['POST', `${m}/graph/neighbourhood`, { body: { seeds: [e.id], depth: 3, nesting: n, ...full } }]);
+        // API 3.24.0: relationship types per direction, at every step
+        for (const walk of [{ outgoingTypes: ['Serving', 'Realization'] }, { incomingTypes: ['Composition'], outgoingTypes: [] },
+          { direction: 'out', outgoingTypes: ['Serving', 'Flow'] }, { direction: 'in', incomingTypes: ['Assignment', 'Realization'], relationshipTypes: ['Realization'] }]) {
+          cases.push(['POST', `${m}/graph/neighbourhood`, { body: { seeds: [e.id], depth: 3, ...walk, ...full } }]);
+        }
       }
       cases.push(['POST', `${m}/graph/neighbourhood`, { body: { seeds: s.elements.slice(0, 4).map(e => e.id), depth: 2 } }]);
       cases.push(['POST', `${m}/graph/neighbourhood`, { body: { seeds: [999999], depth: 1 } }]);
