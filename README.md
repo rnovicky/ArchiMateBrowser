@@ -1553,6 +1553,7 @@ search only covers names and documentation. Example: `@domain=finance`.
   | --- | --- |
   | `el~459.502.68` | these elements (e.g. the basket) |
   | `nb~1~459` | neighbourhood of 459 at depth 1 (`nb~1~459~o` outgoing only, `~i` incoming only) |
+  | `nb~1~459~b~~Serving.Realization` | (2.33.0) the same, following only these relationship types in a direction, at every step: `~<b\|o\|i>~<incoming types>~<outgoing types>`, an empty list for every type; here every incoming relationship, outgoing only Serving and Realization |
   | `ty~ApplicationEvent` | all elements of a type |
   | `la~business` | all elements of a layer |
   | `wm` | every element of the model (2.28.0, API 3.20.0) |

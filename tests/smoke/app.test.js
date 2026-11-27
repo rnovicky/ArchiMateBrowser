@@ -3404,6 +3404,7 @@ describe('smoke', () => {
   // 2.33.0 (API 3.24.0): recipe scripts, from the model's menu
   test('2.33.0: Recipe script…: check shows the errors by line, then makes the recipes; a second check finds them unchanged', async () => {
     const app = await openApp(`#model=${M}`);
+    assert.equal(app.$('#btn-recipe-script').hidden, false, 'in the ⋮ menu of the model list too');
     app.ctx(app.treeRow('Fixture Model'));
     await waitFor(() => app.menu()?.includes('Recipe script…'), { what: 'the model menu' });
     app.clickMenu('Recipe script…');

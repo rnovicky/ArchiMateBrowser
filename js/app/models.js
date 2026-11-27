@@ -926,6 +926,9 @@ export function updateModelButtons() {
   $('#btn-link-new').hidden = !may('import');
   $('#btn-delete-model').disabled = !state.store;
   for (const id of ['#btn-report-quality', '#btn-report-matrix', '#btn-report-landscape']) $(id).disabled = !state.store;
+  // 2.33.0: recipe scripts, from API 3.24.0
+  $('#btn-recipe-script').disabled = !state.store;
+  $('#btn-recipe-script').hidden = !state.apiVersion || olderThan(state.apiVersion, '3.24.0');
   // API-8: a key that may not import or delete (role reader or editor) is not offered the buttons
   $('#btn-import').hidden = !may('import');
   $('#btn-new-model').hidden = !may('import'); // 2.28.0: creating a model needs admin, as importing does

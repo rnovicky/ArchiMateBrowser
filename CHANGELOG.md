@@ -21,7 +21,8 @@ Needs the ArchiMate API 3.24.0 for the new diagram and recipe scripts; the rest 
   with types opened against an API older than 3.24.0 says so instead of
   drawing something else.
 * **Offline copies** follow the types too.
-* **Recipe scripts** (API 3.24.0): *Recipe script…* in the model's menu opens
+* **Recipe scripts** (API 3.24.0): *Recipe script…* in the model's menu (the
+  ⋮ next to the model list, the model in the tree, the command palette) opens
   an editor for a script that makes the recipes of many diagrams at once,
   e.g. *one for each business service with Status XY*. The language is the
   API's RECIPE_SCRIPTS.md.

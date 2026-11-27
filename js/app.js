@@ -34,6 +34,7 @@ import {
   updateFilterButton, updateLayoutButton,
 } from './app/panels.js';
 import { openLandscape, openMatrix, openQualityReport } from './app/reports.js';
+import { openRecipeScript } from './app/scriptdialog.js';
 import { applyHash, modelMatches, modelsOfLink, readHash, resolveHash, select, writeHash } from './app/routing.js';
 import {
   PANELS, askExportOpenLines, diagramContent, elementFolders, elementRow, pngStatus, propertiesObject, setSectionCollapsed,
@@ -387,6 +388,7 @@ $('#btn-refresh').addEventListener('click', () => refreshModels());
 $('#btn-report-quality').addEventListener('click', openQualityReport);
 $('#btn-report-matrix').addEventListener('click', openMatrix);
 $('#btn-report-landscape').addEventListener('click', openLandscape);
+$('#btn-recipe-script').addEventListener('click', openRecipeScript); // 2.33.0
 $('#btn-report-close').addEventListener('click', () => $('#report-dialog').close());
 setupMenuButton($('#btn-model-menu'), $('#model-menu'));
 setupMenuButton($('#btn-who'), $('#who-menu'));
