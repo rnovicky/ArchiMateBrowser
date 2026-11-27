@@ -38,6 +38,7 @@ import { openDeleteModel, openImport, refreshModels, renameModel, selectType } f
 import { openPalette } from './palette.js';
 import { canWalkTypes, renderDef, setFilter, setPropertyOptions, showNeighbourhood, showPaths } from './panels.js';
 import { askNeighbourhoodWalk } from './walkdialog.js';
+import { canScripts, openRecipeScript } from './scriptdialog.js';
 import { modelRef, revealInTree, select } from './routing.js';
 import { showPanel } from './shell.js';
 import { $, state } from './state.js';
@@ -317,6 +318,9 @@ const MODEL = [
   { id: 'new-top-folder', group: 'model', when: () => editing(), label: t('New top-level folder…'), run: () => newFolder(null) },
   // 2.30.0: its name and documentation (admin)
   { id: 'rename-model', group: 'model', when: () => !isOffline() && may('import'), button: true, label: t('Rename model…'), run: () => renameModel() },
+  // 2.33.0 (API 3.24.0): recipe scripts
+  { id: 'recipe-script', group: 'model', when: () => canScripts(), label: t('Recipe script…'),
+    title: t('Make the recipes of many diagrams at once, e.g. one for each business service with a property'), run: () => openRecipeScript() },
   { id: 'export', group: 'model', when: () => !isOffline(), label: t('Export model'), run: () => $('#btn-export').click() },
   { id: 'import', group: 'model', when: () => !isOffline() && may('import'), label: t('Import model…'), run: () => openImport() },
   { id: 'delete', group: 'model', when: () => !isOffline() && may('deleteModel'), label: t('Delete model…'), run: () => openDeleteModel() },

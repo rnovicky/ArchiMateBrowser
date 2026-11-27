@@ -43,7 +43,7 @@ describe('i18n', () => {
       // EN-6: what was app.js
       'app/basket.js', 'app/details.js', 'app/diagram.js', 'app/menus.js', 'app/models.js', 'app/panels.js',
       'app/reports.js', 'app/routing.js', 'app/shell.js', 'app/state.js', 'app/tabs.js', 'app/treespecs.js', 'app/ui.js',
-      'app/actions.js', 'app/history.js', 'app/keys.js', 'app/offline.js', 'app/palette.js', 'app/views.js', 'viewcontent.js', 'app/editing.js', 'app/toolbox.js', 'app/manage.js', 'app/walkdialog.js'];
+      'app/actions.js', 'app/history.js', 'app/keys.js', 'app/offline.js', 'app/palette.js', 'app/views.js', 'viewcontent.js', 'app/editing.js', 'app/toolbox.js', 'app/manage.js', 'app/walkdialog.js', 'app/scriptdialog.js'];
     const call = /(?<![\w.$])(?:t|tr)\(\s*'((?:[^'\\]|\\.)*)'/g;
     const missing = [];
     for (const f of files) {

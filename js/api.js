@@ -374,6 +374,16 @@ export const api = {
   createView: (modelId, body, o) => send('POST', `${m(modelId)}/views`, body, o),
   /** BR-11 (2.23.0): changes in one transaction (API BL-13): { operations: [...] }; resolves to { results, revision, warnings }. */
   changes: (modelId, body, o) => send('POST', `${m(modelId)}/changes`, body, o),
+  /**
+   * 2.33.0 (API 3.24.0): recipe scripts. check: a dry run, the report (errors by line, the recipes it would make);
+   * run: makes and updates them, the report with the views' ids; a script with errors: ApiError code SCRIPT_ERRORS,
+   * the report in `details`.
+   */
+  recipeScripts: {
+    check: (modelId, script, o) => send('POST', `${m(modelId)}/recipe-scripts/check`, { script }, o),
+    run: (modelId, script, { deleteObsolete = false, ...o } = {}) =>
+      send('POST', `${m(modelId)}/recipe-scripts/run`, { script, deleteObsolete }, o),
+  },
   /** The relationship types ArchiMate allows from one concept to another (API 3.7.0): { allowed: [...] }. */
   allowedRelationships: (source, target, o) => request('/metamodel/relationships', { source, target }, o),
   /** Replaces what a created view shows; `version` (If-Match): refused (412) when someone saved it since. Resolves to its content. */

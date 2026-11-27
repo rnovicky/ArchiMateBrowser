@@ -337,7 +337,7 @@ delete) are not shown.
   | Relationship type (*Serving*, …, *Connected to relationships*) | Details · Diagram of the N relationships (their ends, connected by this type only) · Add their ends to diagram · Add their ends to basket · Diagram filter: only / hide this type |
   | Property (under *Property definitions*) | Colour diagrams by it (or stop) · Show it in diagram labels (or stop) · Only elements where it is set / not set · Remove the property filter · Find items with it (`@name` search) |
   | Value of a property (under the property) | Only elements where &lt;property&gt; = &lt;value&gt; · Remove the property filter · Find items with it (`@name=value` search) |
-  | Model (root) | Details and statistics · Refresh · Export model · Import model… · Delete model… · Copy name · Copy link to the model |
+  | Model (root) | Details and statistics · Refresh · Recipe script… · Export model · Import model… · Delete model… · Copy name · Copy link to the model |
   | Search result headings (*Elements*, *Relationships*, *Views*) | Diagram of the results (of the relationships' ends; of the views' elements) · Explore · Add to diagram · Add to basket · Select them · Copy names |
 
   Actions that don't apply are left out; for example *Expand* and *Hide*
@@ -1304,6 +1304,46 @@ relationships appear in it.
   recipe itself.
 * Saving, renaming and deleting need a key that may write; opening one
   needs only reading. An offline copy holds the recipes too.
+
+### Recipe scripts (2.33.0)
+
+A **recipe script** (API 3.24.0) makes the recipes of many diagrams at once,
+in a few readable lines, e.g. *one diagram for each business service with
+Status XY, with every incoming relationship and outgoing Serving and
+Realization*:
+
+```
+script "Service reviews"
+for each BusinessService where @Status = "XY"
+  diagram "Service: {name}"
+    neighbourhood depth 1
+      incoming all
+      outgoing Serving, Realization
+    layout readable
+```
+
+The language is described in the API's
+[RECIPE_SCRIPTS.md](https://github.com/rnovicky/ArchiMateAPI/blob/main/RECIPE_SCRIPTS.md).
+
+* **Recipe script…** in the model's menu (the ⋮ next to the model list, the
+  model in the tree, or the command palette) opens the editor. It starts with
+  an example; what you write is kept in this browser, per model. *Tab*
+  indents by two spaces.
+* **Check** (*Ctrl+Enter*) asks the API what the script would make and changes
+  nothing. Every error is listed with its line and a suggestion ("did you mean
+  BusinessService?"); a click on it selects that line. Otherwise the list
+  shows each recipe as *new*, *changed* (and what: name, documentation, what
+  it draws) or *unchanged*, compared with the recipes the script made last
+  time, and the *obsolete* ones that run made and the script no longer makes.
+  *Show* draws one in a new tab.
+* **Create / update (N)** makes and updates them, in one change. It is offered
+  once the script, as it is now, has been checked without errors; *Also
+  delete the obsolete recipes* deletes those too. The new recipes appear
+  under *Views* (📜), and their details say which script made them.
+* **Running it again** updates the script's own recipes instead of making
+  them twice, so a script can be kept and run whenever the model changes.
+* Checking needs only reading; *Create / update* needs a key that may write.
+  An offline copy does not offer scripts.
 
 ### Images for the MCP server: render mode (2.29.0)
 

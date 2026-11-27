@@ -3400,4 +3400,54 @@ describe('smoke', () => {
     assert.deepEqual(JSON.parse(app.win.localStorage.getItem(SETTINGS)).neighbourWalk.out.types, ['Flow'], 'remembered');
     assert.deepEqual(app.errors, []);
   });
+
+  // 2.33.0 (API 3.24.0): recipe scripts, from the model's menu
+  test('2.33.0: Recipe script…: check shows the errors by line, then makes the recipes; a second check finds them unchanged', async () => {
+    const app = await openApp(`#model=${M}`);
+    app.ctx(app.treeRow('Fixture Model'));
+    await waitFor(() => app.menu()?.includes('Recipe script…'), { what: 'the model menu' });
+    app.clickMenu('Recipe script…');
+    const dialog = await waitFor(() => app.$('#script-dialog[open]'), { what: 'the dialog' });
+    const editor = dialog.querySelector('#script-text');
+    const button = what => dialog.querySelector(`[data-script=${what}]`);
+    const type = text => { editor.value = text; editor.dispatchEvent(new app.win.Event('input', { bubbles: true })); };
+    assert.match(editor.value, /^script "Service reviews"/, 'an example to start from');
+    // an error: its line, a suggestion, and a click that selects the line
+    type('script "Smoke"\nfor each ApplicationComponnt where @lifecycle\n  diagram "{name}"\n    neighbourhood\n');
+    button('check').click();
+    const line = await waitFor(() => dialog.querySelector('.script-problems [data-line="2"]'), { what: 'the error of line 2' });
+    assert.match(line.parentElement.textContent, /did you mean ApplicationComponent/);
+    assert.ok(button('run').disabled, 'nothing to run with errors');
+    line.click();
+    assert.equal(editor.value.slice(editor.selectionStart, editor.selectionEnd), 'for each ApplicationComponnt where @lifecycle');
+    // fixed: three components with a lifecycle, and one more diagram
+    type('script "Smoke"\nfor each ApplicationComponent where @lifecycle\n  diagram "Around {name}"\n    neighbourhood depth 1\n'
+      + 'diagram "ERP impact"\n  impact of "ERP" depth 2\n');
+    assert.ok(button('run').disabled, 'checked first');
+    button('check').click();
+    await waitFor(() => /4 recipe\(s\): 4 new/.test(dialog.querySelector('.script-summary')?.textContent || ''), { what: 'the report' });
+    const names = () => [...dialog.querySelectorAll('.script-table tbody tr td:nth-child(2)')].map(td => td.textContent);
+    assert.deepEqual(names(), ['Around Billing Module', 'Around ERP', 'Around Payment Gateway', 'ERP impact']);
+    assert.equal(button('run').textContent, 'Create / update (4)');
+    button('run').click();
+    await waitFor(() => /^“Smoke”: Done: 4 made/.test(dialog.querySelector('.script-summary')?.textContent || ''), { what: 'made' });
+    assert.match(app.$('#status').textContent, /Recipe script “Smoke”: 4 made, 0 updated, 0 deleted\./);
+    const views = (await (await fetch(`/api/v2/models/${M}/views?limit=200`)).json()).items.filter(v => v.script === 'Smoke');
+    assert.equal(views.length, 4);
+    // checked again: unchanged
+    button('check').click();
+    await waitFor(() => /4 unchanged/.test(dialog.querySelector('.script-summary')?.textContent || ''), { what: 'unchanged' });
+    assert.ok(button('run').disabled, 'nothing to do');
+    // Show draws one in a new tab
+    const tabs = app.$$('#doc-tabs [role=tab]').length;
+    [...dialog.querySelectorAll('.script-table tbody tr')].find(tr => tr.textContent.includes('Around ERP')).querySelector('button').click();
+    await waitFor(() => !app.$('#script-dialog'), { what: 'closed' });
+    await waitFor(() => /Neighbourhood of ERP/.test(app.$('#diagram-title').textContent), { what: 'the diagram', timeout: 20000 });
+    assert.equal(app.$$('#doc-tabs [role=tab]').length, tabs + 1, 'in a new tab');
+    // the view says where it came from
+    app.win.location.hash = `#model=${M}&view=${views.find(v => v.name === 'ERP impact').id}`;
+    await waitFor(() => /made by the recipe script “Smoke”/.test(app.$('#details').textContent), { what: 'its origin' });
+    for (const v of views) await fetch(`/api/v2/models/${M}/views/${v.id}`, { method: 'DELETE', headers: ANY_VERSION });
+    assert.deepEqual(app.errors, []);
+  });
 });

@@ -5,7 +5,7 @@ by date, with the version of the ArchiMate API they need.
 
 ## 2.33.0 (2026-11-27)
 
-Needs the ArchiMate API 3.24.0 for the new diagram; the rest works with older ones.
+Needs the ArchiMate API 3.24.0 for the new diagram and recipe scripts; the rest works with older ones.
 
 * **Neighbourhood with relationship types:** a new entry in an element's menu
   (and in the command palette) asks for the depth and, for incoming and for
@@ -21,6 +21,18 @@ Needs the ArchiMate API 3.24.0 for the new diagram; the rest works with older on
   with types opened against an API older than 3.24.0 says so instead of
   drawing something else.
 * **Offline copies** follow the types too.
+* **Recipe scripts** (API 3.24.0): *Recipe script…* in the model's menu opens
+  an editor for a script that makes the recipes of many diagrams at once,
+  e.g. *one for each business service with Status XY*. The language is the
+  API's RECIPE_SCRIPTS.md.
+  * **Check** (*Ctrl+Enter*) lists every error with its line and a
+    suggestion; a click selects the line. Without errors it lists the recipes
+    the script would make (new, changed, unchanged, obsolete), each with
+    *Show* to draw it in a new tab.
+  * **Create / update (N)** makes and updates them; *Also delete the obsolete
+    recipes* deletes those too. The tree shows the new recipes at once.
+  * The script is kept in this browser, per model. A recipe's details say
+    which script made it.
 
 ## 2.32.0 (2026-11-27)
 

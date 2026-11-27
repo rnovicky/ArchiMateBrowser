@@ -110,6 +110,17 @@ export class ModelStore {
     }
   }
 
+  /** 2.33.0: the views read again, after a recipe script made, changed or deleted some of them. */
+  async reloadViews({ signal } = {}) {
+    const views = await api.listViews(this.id, { signal });
+    this.views = views.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    this.viewCache.clear();
+    if (this.stats) {
+      this.stats.views.total = views.length;
+      this.stats.views.created = views.filter(v => v.origin === 'created').length;
+    }
+  }
+
   /** BR-25: a view this page deleted. */
   dropView(id) {
     const known = this.view(id);

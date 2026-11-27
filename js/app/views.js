@@ -58,7 +58,9 @@ export function originText(v) {
   const on = v.createdAt ? new Date(v.createdAt + (v.createdAt.endsWith('Z') ? '' : 'Z')).toLocaleDateString() : '';
   const made = on ? t('Created by {who} on {date}', { who: by, date: on }) : t('Created by {who}', { who: by });
   const source = v.basedOn ? state.store?.views.find(x => x.xmiIdentifier === v.basedOn) : null;
-  return source ? `${made} · ${t('copy of view “{name}”', { name: source.name })}` : made;
+  const copy = source ? `${made} · ${t('copy of view “{name}”', { name: source.name })}` : made;
+  // 2.33.0 (API 3.24.0): made by a recipe script, which updates it when it runs again
+  return v.script ? `${copy} · ${t('made by the recipe script “{name}”', { name: v.script })}` : copy;
 }
 
 // ---------------------------------------------------------------- a dialog for the name
