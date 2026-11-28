@@ -391,6 +391,9 @@ export const api = {
     checkView: (modelId, viewId, script, { keepDocumentation = false, ...o } = {}) =>
       send('POST', `${m(modelId)}/views/${viewId}/recipe-script/check`, { script, keepDocumentation }, o),
     saveView: (modelId, viewId, body, o) => send('PUT', `${m(modelId)}/views/${viewId}/recipe-script`, body, o),
+    // 2.35.0 (API 3.26.0): a script kept without running it, as a live template; the diagrams it makes now
+    keep: (modelId, script, { live = true, ...o } = {}) => send('POST', `${m(modelId)}/recipe-scripts`, { script, live }, o),
+    expand: (modelId, scriptId, o) => request(`${m(modelId)}/recipe-scripts/${scriptId}/recipes`, undefined, o),
   },
   /** The relationship types ArchiMate allows from one concept to another (API 3.7.0): { allowed: [...] }. */
   allowedRelationships: (source, target, o) => request('/metamodel/relationships', { source, target }, o),

@@ -15,6 +15,7 @@ const TEST_FILES = [
   './unit/impact.test.js',
   './unit/layout.test.js',
   './unit/viewsvg.test.js',
+  './unit/scriptlang.test.js', // 2.35.0: colouring and completion of recipe scripts
   './unit/connection.test.js', // EN-2
   './unit/security.test.js', // EN-3
   './unit/refs.test.js', // BR-17

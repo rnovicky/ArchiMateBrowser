@@ -1,7 +1,7 @@
 // ArchiMate Browser: Model loading, search, settings, the Content-Security-Policy notes, import / delete, linked models.
 // Part of js/app.js until 2026-10-24 (EN-6); app.js wires it to the page.
 
-import { api, isAbort, olderThan } from '../api.js';
+import { api, isAbort, isOffline, olderThan } from '../api.js';
 import { settings } from '../config.js';
 import { t, lang } from '../i18n.js';
 import { Tree } from '../tree.js';
@@ -23,6 +23,7 @@ import { watchModel } from './history.js';
 import { syncEditButton } from './editing.js';
 import { restoreTabs, saveTabs } from './tabs.js';
 import { buildTree, elementSpec, relationshipSpec, viewSpec } from './treespecs.js';
+import { openLiveRecipe } from './views.js';
 import { RENDER_MODE, apiTooOld, cancelJob, errorBox, errorMessage, forbiddenText, h, may, startJob, status } from './ui.js';
 
 // API-8: what the API key in use may do (GET auth/me), or null while unknown; then nothing is hidden
@@ -140,6 +141,9 @@ export function chooseModel(models) {
   });
 }
 
+/** 2.35.0: live recipe templates (API 3.26.0), not in an offline copy. */
+export const canLiveTemplates = () => !isOffline() && !!state.apiVersion && !olderThan(state.apiVersion, '3.26.0');
+
 export async function openModel(model, hash = {}) {
   const signal = startJob('model'); // EN-2: another model chosen meanwhile cancels this one
   status(t('Loading {name}…', { name: model.name }));
@@ -153,6 +157,8 @@ export async function openModel(model, hash = {}) {
     $('#tree').replaceChildren(errorBox(e, () => openModel(model, hash)));
     return;
   }
+  if (signal.aborted) return;
+  if (canLiveTemplates()) await store.loadLiveScripts({ signal }).catch(() => { /* listed when they can be read */ });
   if (signal.aborted) return;
   // The search shown was made in the model before: closed, or, when the same model was opened
   // again (updated from its file, replaced by an import), asked again, since its ids may differ now.
@@ -190,6 +196,8 @@ export async function openModel(model, hash = {}) {
       else if (data.kind === 'layer' || data.kind === 'reltype') selectInfo(data);
       else if (data.kind === 'property' || data.kind === 'propvalue') selectInfo({ kind: 'property', name: data.name });
       else if (data.drill) drillToView(data.id); // view link inside a view's node tree
+      else if (data.kind === 'liverecipe') openLiveRecipe(data.recipe, data.name); // 2.35.0
+      else if (data.kind === 'livescript') { /* its entries are below it */ }
       else select(data.kind, data.id ?? null, { fromTree: true });
     },
   });

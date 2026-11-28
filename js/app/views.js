@@ -185,6 +185,16 @@ export async function openRecipe(viewId) {
   } catch (e) { status(`${t('Recipe “{name}”', { name: v.name })}: ${errorMessage(e)}`, true); }
 }
 
+/** 2.35.0: an entry of a live recipe template: its diagram drawn from the model as it is now. */
+export async function openLiveRecipe(recipe, name) {
+  const s = state.store;
+  try {
+    const resolved = await resolveHash({ model: modelRef(s.model), ...Object.fromEntries(new URLSearchParams(recipe)) });
+    if (!resolved.d) { status(t('“{name}”: what it draws is not in the model any more.', { name }), true); return; }
+    applyHash(resolved);
+  } catch (e) { status(`“${name}”: ${errorMessage(e)}`, true); }
+}
+
 /** "Save": the generated diagram of a tab that edits a created view, written back into it. */
 export async function saveIntoView(doc = state.doc) {
   const editing = editingOf(doc);

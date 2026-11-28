@@ -3,6 +3,29 @@
 Version numbers start at 2.7.0 (2026-10-23); before, changes were listed
 by date, with the version of the ArchiMate API they need.
 
+## 2.35.0 (2026-11-28)
+
+Needs the ArchiMate API 3.26.0 for live templates; the editor works with 3.24.0.
+
+* **Live templates:** *Keep as live template* in the recipe script dialog
+  keeps the script without making recipes. The template is listed under
+  *Views* in the model tree (🔁). Opened, it lists the diagrams its script
+  makes from the model as it is now, so new elements that match appear without
+  a run; choosing one draws it. Its menu has *Open its script…* and *Delete
+  live template…*. When the model no longer fits the template, it says so.
+* **A better script editor**, in the recipe script dialog and in *Edit as
+  script…*:
+  * the script is coloured: keywords, types, texts, properties, references,
+    numbers, comments;
+  * it is checked a moment after typing stops, without *Check*; the line
+    numbers of lines with errors turn red;
+  * words are completed as you type (keywords, element and relationship types,
+    layers, viewpoints, and property names after `@`); *Ctrl+Space* asks for
+    suggestions, *Enter* or *Tab* takes one;
+  * *Enter* keeps the indentation of the line, and indents under `diagram`,
+    `for each`, `defaults` and `neighbourhood`; *Shift+Tab* takes two spaces
+    away.
+
 ## 2.34.0 (2026-11-27)
 
 Needs the ArchiMate API 3.25.0 for what is new here; the rest works with older ones.

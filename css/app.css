@@ -551,11 +551,33 @@ dialog input[type=file] { padding: 6px; }
 #script-dialog { width: min(980px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
 #script-dialog p { margin: 0 0 8px; }
 #script-dialog .script-editor { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+/* 2.35.0: line numbers that mark errors; the coloured text behind a transparent textarea; suggestions */
 #script-dialog .script-gutter { margin: 0; padding: 6px 6px 6px 8px; min-width: 2.5em; text-align: right; color: var(--muted); background: var(--accent-soft);
-  font: 13px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; overflow: hidden; user-select: none; height: 22em; box-sizing: border-box; }
-#script-dialog textarea { flex: 1; margin: 0; border: 0; padding: 6px 8px; resize: vertical; height: 22em; box-sizing: border-box; tab-size: 2;
-  font: 13px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; overflow: auto; background: var(--panel); color: var(--ink); }
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; overflow: hidden; user-select: none; box-sizing: border-box; }
+#script-dialog .script-gutter div.bad { color: var(--error); font-weight: 700; }
+#script-dialog .script-code { position: relative; flex: 1; min-width: 0; display: flex; }
+#script-dialog .script-highlight, #script-dialog textarea { margin: 0; border: 0; padding: 6px 8px; box-sizing: border-box; tab-size: 2;
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; }
+#script-dialog .script-highlight { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: var(--ink); background: var(--panel); }
+#script-dialog textarea { position: relative; flex: 1; resize: vertical; height: 22em; overflow: auto; background: transparent; color: transparent; caret-color: var(--ink); }
+#script-dialog textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); color: transparent; }
 #script-dialog textarea:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sh-kw { color: #1d5fbf; font-weight: 600; }
+.sh-type { color: #8a3fb5; }
+.sh-string { color: #1c7a3a; }
+.sh-prop { color: #b35c00; }
+.sh-ref { color: #00808a; }
+.sh-number { color: #a3366b; }
+.sh-comment { color: var(--muted); font-style: italic; }
+@media (prefers-color-scheme: dark) {
+  .sh-kw { color: #7fb0ff; } .sh-type { color: #d29bf2; } .sh-string { color: #7fd69a; }
+  .sh-prop { color: #f0a85a; } .sh-ref { color: #5fd3dc; } .sh-number { color: #f08fbf; }
+}
+#script-dialog .script-complete { position: absolute; z-index: 5; margin: 0; padding: 2px 0; list-style: none; min-width: 12em; max-height: 14em; overflow: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; }
+#script-dialog .script-complete li { padding: 1px 10px; cursor: pointer; white-space: nowrap; }
+#script-dialog .script-complete li.on { background: var(--accent-soft); }
 #script-dialog .script-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
 #script-dialog .script-actions .grow { flex: 1; }
 #script-dialog label.inline { display: inline-flex; align-items: center; gap: 6px; margin: 0; }

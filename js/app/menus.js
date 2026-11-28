@@ -21,6 +21,7 @@ import {
 } from './panels.js';
 import { revealInTree, select } from './routing.js';
 import { $, state } from './state.js';
+import { liveRecipeEntries, liveScriptEntries } from './scriptdialog.js';
 import { inNewTab } from './tabs.js';
 import { errorMessage, h, status } from './ui.js';
 
@@ -471,6 +472,15 @@ export function openTreeMenu(data, spec, at, treeRoot, { extra = [] } = {}) {
 
   if (data.kind === 'propvalue') {
     popupMenu(`${data.name} = “${data.value}”`, propertyValueMenuEntries(data.name, data.value), at, opts);
+    return true;
+  }
+
+  if (data.kind === 'livescript') { // 2.35.0: a live recipe template
+    popupMenu(t('Live template: {name}', { name: data.name }), liveScriptEntries(data), at, opts);
+    return true;
+  }
+  if (data.kind === 'liverecipe') {
+    popupMenu(data.name, liveRecipeEntries(data), at, opts);
     return true;
   }
 

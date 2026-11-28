@@ -224,7 +224,29 @@ export function buildTree(store) {
 export function viewsSpecs(views) {
   const source = views.filter(v => !isCreated(v));
   const created = views.filter(isCreated).sort((a, b) => a.name.localeCompare(b.name));
-  return [...source, ...created].map(viewSpec);
+  return [...source, ...created].map(viewSpec).concat((state.store?.liveScripts || []).map(liveScriptSpec));
+}
+
+/**
+ * 2.35.0 (API 3.26.0): a live recipe template. It makes no views: opened, it lists the diagrams its script makes from
+ * the model as it is now, each drawn when chosen.
+ */
+export function liveScriptSpec(x) {
+  return {
+    key: `ls:${x.id}`, icon: '🔁', label: x.name, sub: t('live'),
+    title: t('Live template: its diagrams are worked out from the model whenever it is opened'),
+    data: { kind: 'livescript', id: x.id, name: x.name },
+    loadChildren: async () => {
+      const r = await api.recipeScripts.expand(state.store.id, x.id);
+      if (!r.ok) return [{ label: t('{n} error(s): the model no longer fits the template; open its script', { n: r.errors.length }), muted: true, title: r.errors.map(e => `${e.line}: ${e.message}`).join('\n') }];
+      if (!r.recipes.length) return [{ label: t('No diagram: nothing matches now'), muted: true }];
+      return r.recipes.map(p => ({
+        key: `lr:${x.id}:${p.key}`, icon: '📜', label: p.name, sub: p.element ? prettyType(p.element.type) : '',
+        title: [t('Drawn from the model as it is now'), p.documentation || ''].filter(Boolean).join('\n\n'),
+        data: { kind: 'liverecipe', scriptId: x.id, recipe: p.recipe, name: p.name },
+      }));
+    },
+  };
 }
 
 /**

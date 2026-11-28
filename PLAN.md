@@ -6,6 +6,9 @@
   (the API's `API_IMPROVEMENTS.md`); this plan is the other half of that work.
 * **Written 2026-10-11** from the browser as handed over (`HANDOFF.md`, 91
   tests) and the API at its tag `v2.0.0` in `../ArchiMateAPI`.
+* **Status as of 2026-11-28:** 2.35.0, for API 3.26.0: recipes (2.30.0), recipe scripts (2.33.0), a
+  recipe edited as a script and kept scripts (2.34.0), live templates and a better script editor
+  (2.35.0). What is open is listed in [Open ideas and tasks](#open-ideas-and-tasks-as-of-2026-11-28).
 * **Status as of 2026-10-24: the plan is done.** All five phases are
   finished (version 2.9.0): the browser is a v2 client, the API answers
   every question about the model, and a model is loaded on demand. It needs
@@ -37,6 +40,27 @@
   * `IMPROVEMENTS.md` §1 and §1a: the workarounds the browser has today.
   * `../ArchiMateAPI/CHANGELOG.md` and `PLAN.md`: what the API really
     built, and where it differs from the specification.
+
+## Open ideas and tasks (as of 2026-11-28)
+
+What is unfinished or undecided for the Browser. The ideas shared with the API
+and the MCP server (the reporting tool, PostgreSQL, the multi-user epic, the
+recipe scripts' open items R1 to R8) are in the API's PLAN.md, section *Open
+ideas and tasks*. Remove an entry when it is done or dropped.
+
+**Backlog** (details in [IMPROVEMENTS.md](IMPROVEMENTS.md)): BR-10 very large
+models; CM-12 open in a new browser tab; PU-1 a self-hosted PlantUML renderer
+by default; PU-6 PlantUML in the browser; SP-1 sharper relationship sprites;
+LV-7 to LV-10 very large layouts and ELK issues; ALT-3, ALT-5, ALT-6 other
+renderers and a draw.io export; EN-5 the proxy's connection pooling; EN-8
+optional Node.js tooling; BR-15 phase 4 (drag onto a tab, preview tabs).
+
+**From the recipe scripts** (API PLAN.md R4, R5, R7, R8): forgetting a kept
+script's text, live templates in offline copies, a zip of a script's images,
+completion of element names and folder paths in the editor.
+
+**Tests still to do by hand** (`../todo.txt`): the submenus (CM-10) with the
+keyboard; an offline copy in Firefox.
 
 ## How to track progress
 

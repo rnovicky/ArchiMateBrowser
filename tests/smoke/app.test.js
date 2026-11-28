@@ -3523,4 +3523,66 @@ describe('smoke', () => {
       if (ran.storedScriptId) await viewsApi(`/recipe-scripts/${ran.storedScriptId}`, 'DELETE');
     }
   });
+
+  // 2.35.0 (API 3.26.0): live templates; the editor colours, checks while typing and completes
+  test('2.35.0: the script editor colours the script, checks it when typing stops, marks the line and completes words', async () => {
+    const app = await openApp(`#model=${M}`);
+    app.$('#btn-recipe-script').click();
+    const dialog = await waitFor(() => app.$('#script-dialog[open] #script-text') && app.$('#script-dialog'), { what: 'the dialog' });
+    const editor = dialog.querySelector('#script-text');
+    assert.ok(dialog.querySelector('.script-highlight .sh-kw'), 'coloured');
+    editor.value = 'script "Typing"\ndiagram "D"\n  neighbourhod of "ERP"\n';
+    editor.dispatchEvent(new app.win.InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'd' }));
+    // no click on Check: it checks by itself a moment later
+    await waitFor(() => dialog.querySelector('.script-problems [data-line="3"]'), { what: 'the error found by itself', timeout: 8000 });
+    assert.equal(dialog.querySelector('.script-gutter div.bad')?.textContent, '3', 'the line marked');
+    // completion: "neigh" offers neighbourhood; Enter takes it
+    editor.value = 'script "Typing"\ndiagram "D"\n  neigh';
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+    editor.dispatchEvent(new app.win.InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'h' }));
+    const popup = await waitFor(() => !dialog.querySelector('.script-complete').hidden && dialog.querySelector('.script-complete'), { what: 'suggestions' });
+    assert.equal(popup.querySelector('li.on').textContent, 'neighbourhood');
+    editor.dispatchEvent(new app.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    assert.ok(editor.value.endsWith('  neighbourhood'), editor.value);
+    assert.ok(popup.hidden, 'closed');
+    // Enter keeps the indentation, and indents under a block
+    editor.dispatchEvent(new app.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    assert.ok(editor.value.endsWith('  neighbourhood\n    '), JSON.stringify(editor.value.slice(-20)));
+    dialog.querySelector('.script-actions button:last-child').click();
+    assert.deepEqual(app.errors, []);
+  });
+
+  test('2.35.0: Keep as live template: no recipes; under Views it lists its diagrams from the model as it is', async () => {
+    const script = 'script "Smoke live"\nfor each ApplicationComponent where @lifecycle\n  diagram "Live {name}"\n    neighbourhood depth 1\n';
+    const app = await openApp(`#model=${M}`);
+    try {
+      app.$('#btn-recipe-script').click();
+      const dialog = await waitFor(() => app.$('#script-dialog[open] #script-text') && app.$('#script-dialog'), { what: 'the dialog' });
+      const editor = dialog.querySelector('#script-text');
+      editor.value = script;
+      editor.dispatchEvent(new app.win.Event('input', { bubbles: true }));
+      dialog.querySelector('[data-script=check]').click();
+      const live = dialog.querySelector('[data-script=live]');
+      await waitFor(() => !live.disabled, { what: 'checked' });
+      live.click();
+      await waitFor(() => /kept as a live template: 3 diagram/.test(dialog.querySelector('.script-summary')?.textContent || ''), { what: 'kept' });
+      const views = (await (await fetch(`/api/v2/models/${M}/views?limit=200`)).json()).items.filter(v => v.script === 'Smoke live');
+      assert.equal(views.length, 0, 'no recipes');
+      dialog.close();
+      app.treeRow('Views').querySelector('.tree-toggle').click();
+      const row = await waitFor(() => app.treeRow('Smoke live'), { what: 'the template in the tree' });
+      row.querySelector('.tree-toggle').click();
+      const entry = await waitFor(() => app.treeRow('Live ERP'), { what: 'its entries' });
+      assert.ok(app.treeRow('Live Billing Module') && app.treeRow('Live Payment Gateway'));
+      entry.querySelector('.tree-label').click();
+      await waitFor(() => /Neighbourhood of ERP/.test(app.$('#diagram-title').textContent), { what: 'the diagram', timeout: 20000 });
+      app.ctx(app.treeRow('Smoke live'));
+      await waitFor(() => app.menu()?.includes('Delete live template…'), { what: 'its menu' });
+      assert.ok(app.menu().includes('Open its script…'));
+      assert.deepEqual(app.errors, []);
+    } finally {
+      const kept = (await (await fetch(`/api/v2/models/${M}/recipe-scripts`)).json()).filter(x => x.name === 'Smoke live');
+      for (const x of kept) await fetch(`/api/v2/models/${M}/recipe-scripts/${x.id}`, { method: 'DELETE' });
+    }
+  });
 });

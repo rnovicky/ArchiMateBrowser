@@ -29,6 +29,7 @@ export class ModelStore {
     this.missing = new Set();       // ids asked for that the model does not have ("e12", "r5")
     this.lists = new Map();         // kept answers of the lists below, by key
     this.views = [];
+    this.liveScripts = [];      // 2.35.0 (API 3.26.0): the model's live recipe templates, listed under Views
     this.viewCache = new Map(); // viewId -> {nodes, connections}
     this.stats = null;          // GET …/stats (API-5): the counts the tree, the status line and the details show
     this.propertyIndex = new Map(); // properties used on elements: name -> { count, values, langs } (HLP-9)
@@ -119,6 +120,12 @@ export class ModelStore {
       this.stats.views.total = views.length;
       this.stats.views.created = views.filter(v => v.origin === 'created').length;
     }
+  }
+
+  /** 2.35.0 (API 3.26.0): the live recipe templates, read again (when a script was kept, run or deleted). */
+  async loadLiveScripts({ signal } = {}) {
+    this.liveScripts = (await api.recipeScripts.list(this.id, { signal })).filter(x => x.live)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /** BR-25: a view this page deleted. */

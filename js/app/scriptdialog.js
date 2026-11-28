@@ -5,18 +5,22 @@
 //
 // 2.34.0 (API 3.25.0): every run keeps the script's text with the model, so a kept script is opened from the list in
 // the dialog; and a single recipe is edited as the script of one diagram (openRecipeAsScript, "Edit as script…").
+//
+// 2.35.0 (API 3.26.0): a script is kept as a live template (its diagrams worked out whenever it is opened in the tree);
+// the editor (scripteditor.js) colours the script, checks it a moment after typing stops and completes words.
 
 import { api, isOffline, olderThan } from '../api.js';
 import { t } from '../i18n.js';
 import { askConfirm } from './diagram.js';
 import { ownChange } from './history.js';
-import { tree } from './models.js';
+import { canLiveTemplates, tree } from './models.js';
+import { scriptEditor } from './scripteditor.js';
 import { applyHash, modelRef, resolveHash } from './routing.js';
 import { $, state } from './state.js';
 import { inNewTab } from './tabs.js';
 import { buildTree } from './treespecs.js';
 import { errorMessage, h, may, status } from './ui.js';
-import { canWrite, isRecipe } from './views.js';
+import { canWrite, isRecipe, openLiveRecipe } from './views.js';
 
 export const SCRIPTS_NEED = '3.24.0';
 export const EDIT_NEED = '3.25.0';
@@ -52,42 +56,6 @@ const lastReport = new Map(); // modelId -> { text, report }
 const STATUS_LABEL = () => ({ new: t('new'), changed: t('changed'), unchanged: t('unchanged'), obsolete: t('obsolete') });
 const CHANGE_LABEL = () => ({ name: t('name'), documentation: t('documentation'), recipe: t('what it draws') });
 
-/** The editor with line numbers, shared by both dialogs. */
-function scriptEditor(text, onChange, onCheck) {
-  const editor = h('textarea', {
-    id: 'script-text', spellcheck: false, autocomplete: 'off', wrap: 'off', rows: 18,
-    'aria-label': t('Recipe script'), 'aria-describedby': 'script-help',
-  });
-  editor.value = text;
-  const gutter = h('pre', { class: 'script-gutter', 'aria-hidden': 'true' });
-  const numbers = () => {
-    const n = editor.value.split('\n').length;
-    gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join('\n');
-    gutter.scrollTop = editor.scrollTop;
-  };
-  const goToLine = line => {
-    const lines = editor.value.split('\n');
-    const start = lines.slice(0, line - 1).reduce((sum, l) => sum + l.length + 1, 0);
-    editor.focus();
-    editor.setSelectionRange(start, start + (lines[line - 1] || '').length);
-    const lineHeight = editor.scrollHeight / Math.max(1, lines.length);
-    editor.scrollTop = Math.max(0, (line - 4) * lineHeight);
-  };
-  const setText = value => { editor.value = value; numbers(); onChange(); };
-  editor.addEventListener('input', () => { numbers(); onChange(); });
-  editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
-  editor.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); onCheck(); }
-    if (ev.key === 'Tab' && !ev.shiftKey && !ev.ctrlKey && !ev.altKey) { // two spaces: indentation is meaningful here
-      ev.preventDefault();
-      editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
-      numbers(); onChange();
-    }
-  });
-  numbers();
-  return { editor, box: h('div', { class: 'script-editor' }, gutter, editor), numbers, goToLine, setText };
-}
-
 /** A problem of a check, its line a button that selects it. */
 const problemItem = (p, kind, goToLine) => h('li', { class: `script-${kind}` },
   h('button', { type: 'button', class: 'link', 'data-line': p.line, onclick: () => goToLine(p.line) },
@@ -113,8 +81,9 @@ function showDialog(dialog, onClose) {
   dialog.showModal();
 }
 
-async function afterWrite(s) {
-  await s.reloadViews();
+async function afterWrite(s, { views = true } = {}) {
+  if (views) await s.reloadViews();
+  if (canLiveTemplates()) await s.loadLiveScripts().catch(() => { /* listed when they can be read */ });
   ownChange();
   tree?.setRoots(buildTree(s));
 }
@@ -134,6 +103,10 @@ export function openRecipeScript({ text = null, line = null } = {}) {
   const deleteObsolete = h('input', { type: 'checkbox', id: 'script-delete-obsolete' });
   const runButton = h('button', { type: 'button', class: 'primary', 'data-script': 'run', disabled: true }, t('Create / update'));
   const checkButton = h('button', { type: 'button', 'data-script': 'check' }, t('Check'));
+  // 2.35.0 (API 3.26.0): kept as a live template instead of making recipes
+  const liveButton = h('button', { type: 'button', 'data-script': 'live', disabled: true, hidden: !canLiveTemplates(),
+    title: t('Keep the script as a live template: no recipes are made; in the tree it lists its diagrams as the model is whenever it is opened') },
+  t('Keep as live template'));
   const obsoleteLabel = h('label', { class: 'inline', hidden: true }, deleteObsolete, h('span', {}, t('Also delete the obsolete recipes')));
   let report = null, checkedText = null, busy = false;
 
@@ -146,12 +119,15 @@ export function openRecipeScript({ text = null, line = null } = {}) {
     runButton.title = !canRun() ? t('Your key may read only: checking works, running needs a key that may write')
       : stale() && report ? t('The script changed since it was checked: check it again') : '';
     checkButton.disabled = busy;
+    liveButton.disabled = busy || !report?.ok || stale() || !canRun();
     obsoleteLabel.hidden = !(report?.ok && report.counts.obsolete);
   };
-  const ed = scriptEditor(text ?? readDraft(modelId) ?? EXAMPLE, () => syncButtons(), () => check());
+  const ed = scriptEditor(text ?? readDraft(modelId) ?? EXAMPLE,
+    { onChange: () => syncButtons(), onCheck: () => check(), onAutoCheck: () => check({ auto: true }) });
 
   const show = (r, { ran = false } = {}) => {
     report = r;
+    ed.markErrors(r.errors);
     const L = STATUS_LABEL(), C = CHANGE_LABEL();
     const summary = r.ok
       ? (ran ? t('Done: {new} made, {changed} updated, {unchanged} unchanged.', r.counts)
@@ -178,19 +154,36 @@ export function openRecipeScript({ text = null, line = null } = {}) {
     syncButtons();
   };
 
-  const check = async () => {
-    if (busy) return;
+  const check = async ({ auto = false } = {}) => {
+    if (busy || (auto && !stale())) return;
     busy = true; syncButtons();
     const value = ed.editor.value;
     saveDraft(modelId, value);
-    results.replaceChildren(h('p', { class: 'muted' }, t('Checking…')));
+    if (!auto) results.replaceChildren(h('p', { class: 'muted' }, t('Checking…')));
     try {
       const r = await api.recipeScripts.check(modelId, value);
+      if (auto && value !== ed.editor.value) return; // typed on meanwhile: the next check comes
       checkedText = value;
       lastReport.set(modelId, { text: value, report: r });
       show(r);
     } catch (e) {
       results.replaceChildren(h('p', { class: 'script-summary bad', role: 'alert' }, errorMessage(e)));
+    } finally { busy = false; syncButtons(); }
+  };
+
+  const keepLive = async () => {
+    if (busy || liveButton.disabled) return;
+    busy = true; syncButtons();
+    try {
+      const r = await api.recipeScripts.keep(modelId, ed.editor.value, { live: true });
+      await afterWrite(s, { views: false });
+      loadKept();
+      results.replaceChildren(h('p', { class: 'script-summary' },
+        t('“{name}” kept as a live template: {n} diagram(s) now. It is under Views in the tree.', { name: r.name, n: r.diagrams })));
+      status(t('Live template “{name}” kept.', { name: r.name }));
+    } catch (e) {
+      if (e.code === 'SCRIPT_ERRORS' && e.details) show(e.details);
+      else results.replaceChildren(h('p', { class: 'script-summary bad', role: 'alert' }, errorMessage(e)));
     } finally { busy = false; syncButtons(); }
   };
 
@@ -223,7 +216,8 @@ export function openRecipeScript({ text = null, line = null } = {}) {
       const list = await api.recipeScripts.list(modelId);
       kept.replaceChildren(h('option', { value: '' }, list.length ? t('Open a kept script…') : t('No kept scripts yet')),
         ...list.map(x => h('option', { value: x.id ?? '', disabled: !x.stored },
-          x.stored ? t('{name} ({n} recipes)', { name: x.name, n: x.recipes }) : t('{name} (text not kept)', { name: x.name }))));
+          !x.stored ? t('{name} (text not kept)', { name: x.name }) : x.live ? t('{name} (live template)', { name: x.name })
+            : t('{name} ({n} recipes)', { name: x.name, n: x.recipes }))));
       kept.disabled = !list.some(x => x.stored);
     } catch { kept.hidden = true; }
   };
@@ -242,8 +236,9 @@ export function openRecipeScript({ text = null, line = null } = {}) {
     } catch (e) { status(errorMessage(e), true); }
   });
 
-  checkButton.addEventListener('click', check);
+  checkButton.addEventListener('click', () => check());
   runButton.addEventListener('click', run);
+  liveButton.addEventListener('click', keepLive);
   deleteObsolete.addEventListener('change', syncButtons);
 
   const dialog = h('dialog', { id: 'script-dialog', 'aria-labelledby': 'script-title' },
@@ -255,7 +250,7 @@ export function openRecipeScript({ text = null, line = null } = {}) {
       ' · ', h('kbd', {}, 'Ctrl+Enter'), ' ', t('checks')),
     h('div', { class: 'script-top' }, kept),
     ed.box,
-    h('div', { class: 'script-actions' }, checkButton, runButton, obsoleteLabel,
+    h('div', { class: 'script-actions' }, checkButton, runButton, liveButton, obsoleteLabel,
       h('span', { class: 'grow' }),
       h('button', { type: 'button', onclick: () => dialog.close() }, t('Close'))),
     results);
@@ -338,11 +333,13 @@ function editRecipe(s, view, answer, { detach }) {
     showButton.disabled = busy || !report?.ok || stale();
     checkButton.disabled = busy;
   };
-  const ed = scriptEditor(answer.script, () => syncButtons(), () => check());
+  const ed = scriptEditor(answer.script,
+    { onChange: () => syncButtons(), onCheck: () => check(), onAutoCheck: () => check({ auto: true }) });
   const note = detach ? h('p', { class: 'script-note' }, t('Saving detaches this recipe from the recipe script “{script}”: its runs no longer update or delete it.', { script: view.script })) : null;
 
   const show = (r, { saved = false } = {}) => {
     report = r;
+    ed.markErrors(r.errors);
     const C = CHANGE_LABEL();
     const summary = !r.ok ? t('{n} error(s): nothing is saved until they are fixed.', { n: r.errors.length })
       : saved ? (r.changed ? t('Saved.') : t('Nothing to save.'))
@@ -356,13 +353,14 @@ function editRecipe(s, view, answer, { detach }) {
     syncButtons();
   };
 
-  const check = async () => {
-    if (busy) return;
+  const check = async ({ auto = false } = {}) => {
+    if (busy || (auto && !stale())) return;
     busy = true; syncButtons();
     const value = ed.editor.value;
-    results.replaceChildren(h('p', { class: 'muted' }, t('Checking…')));
+    if (!auto) results.replaceChildren(h('p', { class: 'muted' }, t('Checking…')));
     try {
       const r = await api.recipeScripts.checkView(s.id, view.id, value, { keepDocumentation });
+      if (auto && value !== ed.editor.value) return;
       checkedText = value;
       show(r);
     } catch (e) {
@@ -389,7 +387,7 @@ function editRecipe(s, view, answer, { detach }) {
     } finally { busy = false; syncButtons(); }
   };
 
-  checkButton.addEventListener('click', check);
+  checkButton.addEventListener('click', () => check());
   saveButton.addEventListener('click', save);
   showButton.addEventListener('click', () => report?.recipe && previewRecipe(s, report.recipe.recipe, dialog));
 
@@ -407,4 +405,31 @@ function editRecipe(s, view, answer, { detach }) {
   showDialog(dialog);
   syncButtons();
   ed.editor.focus();
+}
+
+// ================================================================ live templates in the tree (2.35.0, API 3.26.0)
+
+/** The menu of a live template in the tree: its script, and deleting it. */
+export function liveScriptEntries(data) {
+  const s = state.store;
+  return [
+    { label: t('Open its script…'), action: async () => {
+      try { openRecipeScript({ text: (await api.recipeScripts.get(s.id, data.id)).text }); } catch (e) { status(errorMessage(e), true); }
+    } },
+    { label: t('Delete live template…'), disabled: !canRun(), action: async () => {
+      if (!await askConfirm(t('Delete the live template “{name}”? It made no views; only its script goes.', { name: data.name }), t('Delete'))) return;
+      try {
+        await api.recipeScripts.remove(s.id, data.id);
+        await afterWrite(s, { views: false });
+        status(t('Live template “{name}” deleted.', { name: data.name }));
+      } catch (e) { status(errorMessage(e), true); }
+    } },
+  ];
+}
+
+/** The menu of an entry of a live template: its diagram, here or in a new tab. */
+export function liveRecipeEntries(data) {
+  return [
+    { newTab: true, label: t('Open diagram'), action: () => openLiveRecipe(data.recipe, data.name) },
+  ];
 }

@@ -1349,6 +1349,26 @@ The language is described in the API's
   written elsewhere, by someone else or with Claude, is opened, changed and
   run again.
 
+### Live templates (2.35.0)
+
+*Keep as live template* in the recipe script dialog (API 3.26.0) keeps the
+script without making recipes. It is listed under **Views** in the model tree
+with 🔁: opened, it lists the diagrams its script makes from the model as it
+is now, and choosing one draws it. New elements that match appear without a
+run. Its menu has *Open its script…* (to change it and keep it again) and
+*Delete live template…*. Keeping and deleting need a key that may write.
+
+### The script editor (2.35.0)
+
+* The script is coloured as you type, and checked a moment after you stop:
+  errors are listed below it and their line numbers turn red.
+* Completion: keywords, element and relationship types, layers and viewpoints
+  as you type, property names after `@`; *Ctrl+Space* asks, *Enter* or *Tab*
+  takes the suggestion, *Esc* closes the list.
+* *Enter* keeps the line's indentation (and indents under `diagram`, `for
+  each`, `defaults`, `neighbourhood`); *Tab* and *Shift+Tab* indent and
+  outdent by two spaces.
+
 ### Editing a recipe as a script (2.34.0)
 
 **Edit as script…** on a recipe (its menu, and a button in its details; API
