@@ -394,6 +394,9 @@ export const api = {
     // 2.35.0 (API 3.26.0): a script kept without running it, as a live template; the diagrams it makes now
     keep: (modelId, script, { live = true, ...o } = {}) => send('POST', `${m(modelId)}/recipe-scripts`, { script, live }, o),
     expand: (modelId, scriptId, o) => request(`${m(modelId)}/recipe-scripts/${scriptId}/recipes`, undefined, o),
+    // 2.36.0 (API 3.28.0): all the recipes a script made, deleted at once
+    deleteRecipes: (modelId, script, { forget = false, ...o } = {}) =>
+      send('POST', `${m(modelId)}/recipe-scripts/delete-recipes`, { script, forget }, o),
   },
   /** The relationship types ArchiMate allows from one concept to another (API 3.7.0): { allowed: [...] }. */
   allowedRelationships: (source, target, o) => request('/metamodel/relationships', { source, target }, o),

@@ -38,7 +38,7 @@ import { openDeleteModel, openImport, refreshModels, renameModel, selectType } f
 import { openPalette } from './palette.js';
 import { canWalkTypes, renderDef, setFilter, setPropertyOptions, showNeighbourhood, showPaths } from './panels.js';
 import { askNeighbourhoodWalk } from './walkdialog.js';
-import { canEditAsScript, canScripts, openRecipeAsScript, openRecipeScript } from './scriptdialog.js';
+import { canDeleteScriptRecipes, canEditAsScript, canScripts, deleteScriptRecipes, openRecipeAsScript, openRecipeScript } from './scriptdialog.js';
 import { modelRef, revealInTree, select } from './routing.js';
 import { showPanel } from './shell.js';
 import { $, state } from './state.js';
@@ -227,6 +227,11 @@ const VIEW = [
   // 2.31.0: also a view of the model's source, on a model mastered here (API 3.23.0)
   { id: 'rename', group: 'manage', when: c => canManageView(c.item), button: true, label: t('Rename…'), run: c => renameView(c.id) },
   { id: 'delete', group: 'manage', when: c => canManageView(c.item), button: true, label: t('Delete…'), run: c => deleteView(c.id) },
+  // 2.36.0 (API 3.28.0): a recipe made by a recipe script: all the recipes of that script at once
+  { id: 'delete-script-recipes', group: 'manage', when: c => !!c.item?.script && canDeleteScriptRecipes(),
+    label: t('Delete all diagrams of its script…'),
+    title: t('Delete every recipe the recipe script that made this one made, e.g. after running a wrong script'),
+    run: c => deleteScriptRecipes(state.store, c.item.script) },
   { id: 'show-in-tree', group: 'find', button: true, label: t('Show in tree'), title: t('Expand the model tree to this item'),
     run: c => revealInTree('view', c.id) },
   { id: 'show-in-folders', group: 'find', when: c => !isCreated(c.item), button: true, label: t('Show in folders'), title: t('Reveal this item in the Folders branch'),

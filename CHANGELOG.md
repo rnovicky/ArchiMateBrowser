@@ -3,6 +3,22 @@
 Version numbers start at 2.7.0 (2026-10-23); before, changes were listed
 by date, with the version of the ArchiMate API they need.
 
+## 2.36.0 (2026-11-28)
+
+Needs the ArchiMate API 3.28.0 for deleting a script's diagrams.
+
+* **The script dialogs keep their size.** What checking finds (errors,
+  warnings, the list of recipes) scrolls in its own part instead of making
+  the dialog taller, so the editor no longer jumps. Drag the dialog's corner
+  to make it bigger or smaller, and the bar between the script and the
+  results (or the arrow keys on it) to share the room differently. Both are
+  remembered in this browser.
+* **Delete its diagrams…** above the editor deletes every recipe the script
+  of that name made, e.g. after running a wrong script. A confirmation lists
+  them; *Also forget the script's kept text* deletes the text too. A recipe
+  made by a script has *Delete all diagrams of its script…* in its menu.
+  Recipes detached from the script stay. Needs a key that may write.
+
 ## 2.35.0 (2026-11-28)
 
 Needs the ArchiMate API 3.26.0 for live templates; the editor works with 3.24.0.

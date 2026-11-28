@@ -6,7 +6,7 @@
   (the API's `API_IMPROVEMENTS.md`); this plan is the other half of that work.
 * **Written 2026-10-11** from the browser as handed over (`HANDOFF.md`, 91
   tests) and the API at its tag `v2.0.0` in `../ArchiMateAPI`.
-* **Status as of 2026-11-28:** 2.35.0, for API 3.26.0: recipes (2.30.0), recipe scripts (2.33.0), a
+* **Status as of 2026-11-28:** 2.36.0, for API 3.28.0 (the script dialogs keep their size; a script's diagrams deleted at once); 2.35.0, for API 3.26.0: recipes (2.30.0), recipe scripts (2.33.0), a
   recipe edited as a script and kept scripts (2.34.0), live templates and a better script editor
   (2.35.0). What is open is listed in [Open ideas and tasks](#open-ideas-and-tasks-as-of-2026-11-28).
 * **Status as of 2026-10-24: the plan is done.** All five phases are
@@ -56,7 +56,7 @@ renderers and a draw.io export; EN-5 the proxy's connection pooling; EN-8
 optional Node.js tooling; BR-15 phase 4 (drag onto a tab, preview tabs).
 
 **From the recipe scripts** (API PLAN.md R4, R5, R7, R8): forgetting a kept
-script's text, live templates in offline copies, a zip of a script's images,
+script's text without its diagrams, live templates in offline copies, a zip of a script's images,
 completion of element names and folder paths in the editor.
 
 **Tests still to do by hand** (`../todo.txt`): the submenus (CM-10) with the

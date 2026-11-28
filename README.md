@@ -1349,6 +1349,19 @@ The language is described in the API's
   written elsewhere, by someone else or with Claude, is opened, changed and
   run again.
 
+### The size of the dialog, and deleting a script's diagrams (2.36.0)
+
+* The recipe script dialog and *Edit as script…* keep their size: errors,
+  warnings and the recipes scroll below the editor. The dialog's corner
+  resizes it; the bar between the script and the results moves the split
+  (also with the arrow keys). Both are remembered in this browser.
+* **Delete its diagrams…** above the editor (API 3.28.0) deletes all the
+  recipes the script in the editor made, after a confirmation that lists
+  them, e.g. after running a wrong script. *Also forget the script's kept
+  text* deletes its text too. A recipe made by a script offers the same as
+  *Delete all diagrams of its script…* in its menu. Recipes detached from the
+  script are no longer its own and stay. Needs a key that may write.
+
 ### Live templates (2.35.0)
 
 *Keep as live template* in the recipe script dialog (API 3.26.0) keeps the

@@ -3585,4 +3585,68 @@ describe('smoke', () => {
       for (const x of kept) await fetch(`/api/v2/models/${M}/recipe-scripts/${x.id}`, { method: 'DELETE' });
     }
   });
+
+  // 2.36.0: the dialog keeps its size; all the recipes of a script deleted at once (API 3.28.0)
+  test('2.36.0: the script dialog keeps its size whatever checking finds; the bar moves the split', async () => {
+    const app = await openApp(`#model=${M}`);
+    app.$('#btn-recipe-script').click();
+    const dialog = await waitFor(() => app.$('#script-dialog[open] #script-text') && app.$('#script-dialog'), { what: 'the dialog' });
+    assert.ok(dialog.classList.contains('script-sized'));
+    const editor = dialog.querySelector('#script-text');
+    const height = dialog.offsetHeight, editorHeight = editor.offsetHeight;
+    editor.value = 'script "Size"\n' + Array.from({ length: 30 }, (_, i) => `diagram "D${i}"\n  neighbourhod\n`).join('');
+    editor.dispatchEvent(new app.win.Event('input', { bubbles: true }));
+    dialog.querySelector('[data-script=check]').click();
+    await waitFor(() => dialog.querySelectorAll('.script-problems li').length >= 30, { what: 'many errors' });
+    assert.equal(dialog.offsetHeight, height, 'the dialog keeps its height');
+    assert.equal(editor.offsetHeight, editorHeight, 'and so does the editor');
+    const results = dialog.querySelector('.script-results');
+    assert.ok(results.scrollHeight > results.clientHeight, 'the results scroll');
+    // the bar between the script and the results, by keyboard
+    const bar = dialog.querySelector('.script-split');
+    const before = results.offsetHeight;
+    bar.dispatchEvent(new app.win.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    assert.ok(results.offsetHeight > before, 'more room for the results');
+    assert.ok(editor.offsetHeight < editorHeight, 'less for the script');
+    assert.equal(dialog.offsetHeight, height, 'the dialog the same');
+    dialog.close();
+    try { app.win.localStorage.removeItem('archixmi-script-dialog'); } catch { /* ignore */ }
+    assert.deepEqual(app.errors, []);
+  });
+
+  test('2.36.0: Delete its diagrams…: every recipe a script made, after a confirmation; also from a recipe\'s menu', async () => {
+    const script = 'script "Smoke wrong"\nfor each ApplicationComponent where @lifecycle\n  diagram "Wrong {name}"\n    neighbourhood depth 1\n';
+    const ran = await (await fetch(`/api/v2/models/${M}/recipe-scripts/run`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ script }) })).json();
+    const mine = async () => (await (await fetch(`/api/v2/models/${M}/views?limit=200`)).json()).items.filter(v => v.script === 'Smoke wrong');
+    try {
+      assert.equal((await mine()).length, 3);
+      const app = await openApp(`#model=${M}&view=${ran.recipes[0].viewId}`);
+      // the recipe's menu offers it
+      await waitFor(() => /made by the recipe script “Smoke wrong”/.test(app.$('#details').textContent), { what: 'the recipe' });
+      app.ctx(await waitFor(() => { app.treeRow('Views')?.querySelector('.tree-toggle[aria-expanded=false]')?.click(); return app.treeRow('Wrong ERP'); }, { what: 'the recipe in the tree' }));
+      await waitFor(() => app.menu()?.includes('Delete all diagrams of its script…'), { what: 'the entry' });
+      app.doc.dispatchEvent(new app.win.KeyboardEvent('keydown', { key: 'Escape' }));
+      // from the dialog: the script in the editor
+      app.$('#btn-recipe-script').click();
+      const dialog = await waitFor(() => app.$('#script-dialog[open] #script-text') && app.$('#script-dialog'), { what: 'the dialog' });
+      const editor = dialog.querySelector('#script-text');
+      editor.value = script;
+      editor.dispatchEvent(new app.win.Event('input', { bubbles: true }));
+      dialog.querySelector('[data-script=delete-recipes]').click();
+      const confirm = await waitFor(() => app.$('#script-delete-dialog[open]'), { what: 'the confirmation' });
+      assert.match(confirm.textContent, /Delete the 3 diagram\(s\)/);
+      assert.equal(confirm.querySelectorAll('ul li').length, 3);
+      confirm.querySelector('[data-script=confirm-delete]').click();
+      await waitFor(() => /“Smoke wrong”: 3 diagram\(s\) deleted/.test(app.$('#status').textContent), { what: 'deleted' });
+      assert.equal((await mine()).length, 0);
+      assert.ok(app.$('#script-dialog[open]'), 'the script dialog stays open');
+      assert.ok(!app.treeRow('Wrong ERP'), 'gone from the tree');
+      dialog.close();
+      assert.deepEqual(app.errors, []);
+    } finally {
+      for (const v of await mine()) await fetch(`/api/v2/models/${M}/views/${v.id}`, { method: 'DELETE', headers: ANY_VERSION });
+      if (ran.storedScriptId) await fetch(`/api/v2/models/${M}/recipe-scripts/${ran.storedScriptId}`, { method: 'DELETE' });
+    }
+  });
 });

@@ -8,6 +8,10 @@
 //
 // 2.35.0 (API 3.26.0): a script is kept as a live template (its diagrams worked out whenever it is opened in the tree);
 // the editor (scripteditor.js) colours the script, checks it a moment after typing stops and completes words.
+//
+// 2.36.0: the dialog keeps its size whatever checking finds (its edge drags it bigger or smaller, a bar between the
+// script and the results moves the split; both remembered in this browser); "Delete its diagrams…" deletes all the
+// recipes a script made (API 3.28.0).
 
 import { api, isOffline, olderThan } from '../api.js';
 import { t } from '../i18n.js';
@@ -24,6 +28,7 @@ import { canWrite, isRecipe, openLiveRecipe } from './views.js';
 
 export const SCRIPTS_NEED = '3.24.0';
 export const EDIT_NEED = '3.25.0';
+export const DELETE_RECIPES_NEED = '3.28.0';
 export const LANGUAGE_URL = 'https://github.com/rnovicky/ArchiMateAPI/blob/main/RECIPE_SCRIPTS.md';
 
 /** May this page check recipe scripts: an API that has them, not an offline copy. Running them needs canWrite too. */
@@ -33,6 +38,8 @@ export const canEditScripts = () => canScripts() && !olderThan(state.apiVersion,
 /** 2.34.0: "Edit as script…" for a recipe. */
 export const canEditAsScript = view => canEditScripts() && isRecipe(view);
 const canRun = () => canScripts() && canWrite() && may('write');
+/** 2.36.0: deleting all the recipes of a script at once (API 3.28.0). */
+export const canDeleteScriptRecipes = () => canScripts() && !olderThan(state.apiVersion, DELETE_RECIPES_NEED) && canRun();
 
 const EXAMPLE = `script "Service reviews"
 
@@ -72,6 +79,55 @@ function previewRecipe(s, recipe, dialog) {
       else status(t('What this recipe draws is not in the model.'), true);
     } catch (e) { status(errorMessage(e), true); }
   });
+}
+
+// 2.36.0: the size of the script dialog and the height of its results, in this browser only
+const SIZE_KEY = 'archixmi-script-dialog';
+const readSize = () => { try { return JSON.parse(localStorage.getItem(SIZE_KEY) || '{}') || {}; } catch { return {}; } };
+const saveSize = patch => { try { localStorage.setItem(SIZE_KEY, JSON.stringify({ ...readSize(), ...patch })); } catch { /* not kept */ } };
+
+/**
+ * A script dialog of a fixed size: what checking finds scrolls in the results instead of growing the dialog. Its edge
+ * (the corner) resizes it; the bar above the results moves the split between the script and them.
+ */
+function sized(dialog, results) {
+  dialog.classList.add('script-sized');
+  const saved = readSize();
+  if (saved.w) dialog.style.width = `${saved.w}px`;
+  if (saved.h) dialog.style.height = `${saved.h}px`;
+  if (saved.r) results.style.flexBasis = `${saved.r}px`;
+  const bar = h('div', { class: 'script-split', role: 'separator', 'aria-orientation': 'horizontal', tabindex: '0',
+    title: t('Drag to give the script or the results more room'), 'aria-label': t('Split between the script and the results') });
+  const setResults = px => {
+    const room = dialog.clientHeight - 220; // the editor keeps some lines
+    const r = Math.round(Math.max(40, Math.min(px, Math.max(40, room))));
+    results.style.flexBasis = `${r}px`;
+    saveSize({ r });
+  };
+  bar.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    bar.setPointerCapture(e.pointerId);
+    const startY = e.clientY, start = results.getBoundingClientRect().height;
+    const move = ev => setResults(start + startY - ev.clientY);
+    const up = () => { bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', up); };
+    bar.addEventListener('pointermove', move);
+    bar.addEventListener('pointerup', up);
+  });
+  bar.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    setResults(results.getBoundingClientRect().height + (e.key === 'ArrowUp' ? 24 : -24));
+  });
+  results.before(bar);
+  // the dialog's own size is kept when the user dragged its edge (not when the window made it smaller)
+  let dragging = false;
+  dialog.addEventListener('pointerdown', e => { dragging = e.target === dialog; });
+  window.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    saveSize({ w: Math.round(dialog.offsetWidth), h: Math.round(dialog.offsetHeight) });
+  });
+  return dialog;
 }
 
 function showDialog(dialog, onClose) {
@@ -221,6 +277,20 @@ export function openRecipeScript({ text = null, line = null } = {}) {
       kept.disabled = !list.some(x => x.stored);
     } catch { kept.hidden = true; }
   };
+  // 2.36.0 (API 3.28.0): all the recipes of the script in the editor, or of a kept one, deleted at once
+  const deleteButton = h('button', { type: 'button', 'data-script': 'delete-recipes', hidden: !canDeleteScriptRecipes(),
+    title: t('Delete all the diagrams (recipes) the script of this name made, e.g. after running a wrong script') },
+  t('Delete its diagrams…'));
+  deleteButton.addEventListener('click', async () => {
+    const name = report?.script || scriptName(ed.editor.value);
+    if (!name) { status(t('The script has no script line: it has no name, so it made no recipes.'), true); return; }
+    if (await deleteScriptRecipes(s, name)) {
+      checkedText = null; lastReport.delete(modelId);
+      results.replaceChildren();
+      report = null; syncButtons();
+      loadKept();
+    }
+  });
   kept.addEventListener('change', async () => {
     const id = kept.value;
     kept.value = '';
@@ -248,12 +318,13 @@ export function openRecipeScript({ text = null, line = null } = {}) {
       h('a', { href: LANGUAGE_URL, target: '_blank', rel: 'noopener' }, t('The language')), ' · ',
       h('button', { type: 'button', class: 'link', onclick: () => { ed.setText(EXAMPLE); ed.editor.focus(); } }, t('Example')),
       ' · ', h('kbd', {}, 'Ctrl+Enter'), ' ', t('checks')),
-    h('div', { class: 'script-top' }, kept),
+    h('div', { class: 'script-top' }, deleteButton, kept),
     ed.box,
     h('div', { class: 'script-actions' }, checkButton, runButton, liveButton, obsoleteLabel,
       h('span', { class: 'grow' }),
       h('button', { type: 'button', onclick: () => dialog.close() }, t('Close'))),
     results);
+  sized(dialog, results);
   showDialog(dialog, () => saveDraft(modelId, ed.editor.value));
   loadKept();
   const last = lastReport.get(modelId);
@@ -313,7 +384,7 @@ function editRecipe(s, view, answer, { detach }) {
   const close = h('button', { type: 'button', onclick: () => dialog.close() }, t('Close'));
   const head = h('h2', { id: 'script-title' }, t('Recipe as script: {name}', { name: view.name }));
   if (answer.script == null) {
-    const dialog = h('dialog', { id: 'script-dialog', 'aria-labelledby': 'script-title' }, head, gaps,
+    const dialog = h('dialog', { id: 'script-dialog', class: 'script-choice', 'aria-labelledby': 'script-title' }, head, gaps,
       h('div', { class: 'script-actions' }, h('span', { class: 'grow' }), close));
     showDialog(dialog);
     return;
@@ -402,9 +473,54 @@ function editRecipe(s, view, answer, { detach }) {
     ed.box,
     h('div', { class: 'script-actions' }, checkButton, saveButton, showButton, h('span', { class: 'grow' }), close),
     results);
+  sized(dialog, results);
   showDialog(dialog);
   syncButtons();
   ed.editor.focus();
+}
+
+// ================================================================ deleting a script's recipes (2.36.0, API 3.28.0)
+
+/** The name on the script line of a text, or null. */
+export function scriptName(text) {
+  const m = /^[ \t]*script[ \t]+"((?:[^"\\]|\\.)*)"/m.exec(text || '');
+  return m ? m[1].replace(/\\(.)/g, '$1') : null;
+}
+
+/**
+ * Delete all the recipes the script `name` made, after a confirmation that lists them. Resolves true when deleted.
+ * The script's kept text stays (a run of it makes them again) unless "also forget" is ticked.
+ */
+export async function deleteScriptRecipes(s, name) {
+  const views = s.views.filter(v => v.script === name);
+  if (!views.length) { status(t('The script “{name}” made no diagrams that are still its own.', { name }), true); return false; }
+  const forget = h('input', { type: 'checkbox', id: 'script-forget' });
+  const ok = await new Promise(resolve => {
+    let yes = false;
+    const shown = views.slice(0, 12);
+    const dialog = h('dialog', { id: 'script-delete-dialog', 'aria-labelledby': 'script-delete-title' },
+      h('h2', { id: 'script-delete-title' }, t('Delete the diagrams of “{name}”', { name })),
+      h('p', {}, t('Delete the {n} diagram(s) (recipes) the recipe script “{name}” made? This cannot be undone; recipes detached from the script stay.', { n: views.length, name })),
+      h('ul', { class: 'script-obsolete' }, shown.map(v => h('li', {}, v.name)),
+        views.length > shown.length ? h('li', { class: 'muted' }, t('… and {n} more', { n: views.length - shown.length })) : null),
+      h('label', { class: 'inline' }, forget, h('span', {}, t('Also forget the script’s kept text'))),
+      h('div', { class: 'script-actions' },
+        h('button', { type: 'button', class: 'danger', 'data-script': 'confirm-delete', onclick: () => { yes = true; dialog.close(); } },
+          t('Delete {n} diagram(s)', { n: views.length })),
+        h('span', { class: 'grow' }),
+        h('button', { type: 'button', onclick: () => dialog.close() }, t('Cancel'))));
+    // the confirmation goes over the script dialog, which stays open
+    document.body.append(dialog);
+    dialog.addEventListener('close', () => { dialog.remove(); resolve(yes); }, { once: true });
+    dialog.showModal();
+  });
+  if (!ok) return false;
+  try {
+    const r = await api.recipeScripts.deleteRecipes(s.id, name, { forget: forget.checked });
+    await afterWrite(s);
+    status(t('Recipe script “{name}”: {n} diagram(s) deleted.', { name, n: r.deleted.length }));
+    return true;
+  } catch (e) { status(errorMessage(e), true); return false; }
 }
 
 // ================================================================ live templates in the tree (2.35.0, API 3.26.0)
